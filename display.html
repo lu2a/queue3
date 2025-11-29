@@ -437,13 +437,13 @@ const firebaseConfig = {
         };
 
         window.zoomIn = function() {
-            currentZoom = Math.min(currentZoom + 0.05, 1);
+            currentZoom = Math.min(currentZoom + 0.025, 0.5);
             document.body.style.transform = `scale(${currentZoom})`;
             document.body.style.transformOrigin = 'top right';
         };
 
         window.zoomOut = function() {
-            currentZoom = Math.max(currentZoom - 0.05, 0.25);
+            currentZoom = Math.max(currentZoom - 0.025, 0.125);
             document.body.style.transform = `scale(${currentZoom})`;
             document.body.style.transformOrigin = 'top right';
         };
