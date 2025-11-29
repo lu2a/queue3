@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الأطباء - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .sidebar { width: 280px; transition: all 0.3s ease; }
+        .main-content { margin-right: 280px; transition: all 0.3s ease; }
+        .collapsed .sidebar { transform: translateX(100%); }
+        .collapsed .main-content { margin-right: 0; }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background-color: rgba(255, 255, 255, 0.2); }
+        .status-online { color: #10b981; }
+        .status-offline { color: #ef4444; }
+        .status-busy { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <i class="fas fa-user-md text-4xl text-blue-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">تسجيل دخول الأطباء</h2>
+                <p class="text-gray-600">أدخل بياناتك للوصول إلى بوابة الأطباء</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                    <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-sign-in-alt ml-2"></i>تسجيل الدخول
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar fixed right-0 top-0 h-full bg-gradient-to-b from-blue-600 to-blue-700 text-white z-40">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center">
+                    <i class="fas fa-user-md text-2xl ml-3"></i>
+                    <h1 class="text-xl font-bold">بوابة الأطباء</h1>
+                </div>
+                <button id="toggleSidebar" class="lg:hidden text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-8">
+                <div class="flex items-center mb-4">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%233b82f6'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-family='Arial'%3Eد%3C/text%3E%3C/svg%3E" alt="Doctor" class="w-16 h-16 rounded-full border-2 border-white/20 mr-4">
+                    <div>
+                        <div class="font-bold" id="doctorName">د. أحمد محمد</div>
+                        <div class="text-sm text-blue-100" id="doctorSpecialty">استشاري طب أسرة</div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
+                    <span class="text-sm">متصل الآن</span>
+                </div>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="nav-item active flex items-center p-3 rounded-lg" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt ml-3"></i>
+                    <span>لوحة التحكم</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="attendance">
+                    <i class="fas fa-clock ml-3"></i>
+                    <span>الحضور والانصراف</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="requests">
+                    <i class="fas fa-file-alt ml-3"></i>
+                    <span>الطلبات</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="consultations">
+                    <i class="fas fa-comments ml-3"></i>
+                    <span>الاستشارات</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="schedule">
+                    <i class="fas fa-calendar-alt ml-3"></i>
+                    <span>الجدول</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="profile">
+                    <i class="fas fa-user-cog ml-3"></i>
+                    <span>الملف الشخصي</span>
+                </a>
+            </nav>
+        </div>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-6">
+            <button id="logoutBtn" class="w-full bg-white/20 hover:bg-white/30 text-white py-3 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt ml-2"></i>تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <button id="mobileToggleSidebar" class="lg:hidden text-gray-600 mr-4">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">لوحة التحكم</h2>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="text-gray-600 hover:text-gray-800 relative">
+                                <i class="fas fa-bell text-xl"></i>
+                                <span class="absolute -top-1 -left-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" id="notificationCount">3</span>
+                            </button>
+                        </div>
+                        <div class="text-gray-600">
+                            <span id="currentTime"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="p-6">
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="section">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                            <div class="mr-4">
+                                <div class="text-2xl font-bold text-gray-800" id="todayPatients">25</div>
+                                <div class="text-gray-600 text-sm">مرضى اليوم</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-check-circle text-2xl"></i>
+                            </div>
+                            <div class="mr-4">
+                                <div class="text-2xl font-bold text-gray-800" id="completedVisits">18</div>
+                                <div class="text-gray-600 text-sm">زيارات مكتملة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                <i class="fas fa-clock text-2xl"></i>
+                            </div>
+                            <div class="mr-4">
+                                <div class="text-2xl font-bold text-gray-800" id="avgConsultationTime">12</div>
+                                <div class="text-gray-600 text-sm">متوسط الوقت (دقيقة)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-lg p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-star text-2xl"></i>
+                            </div>
+                            <div class="mr-4">
+                                <div class="text-2xl font-bold text-gray-800" id="rating">4.8</div>
+                                <div class="text-gray-600 text-sm">التقييم</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-history text-blue-600 ml-3"></i>
+                        النشاط الأخير
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-user text-blue-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">تم استقبال المريض محمد أحمد</div>
+                                <div class="text-sm text-gray-600">الساعة 10:30 ص - عيادة طب الأسرة</div>
+                            </div>
+                            <div class="text-sm text-gray-500">منذ 5 دقائق</div>
+                        </div>
+                        
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-check text-green-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">اكتملت زيارة فاطمة علي</div>
+                                <div class="text-sm text-gray-600">الساعة 10:15 ص - عيادة طب الأسرة</div>
+                            </div>
+                            <div class="text-sm text-gray-500">منذ 20 دقيقة</div>
+                        </div>
+                        
+                        <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                            <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800">طلب استشارة جديد</div>
+                                <div class="text-sm text-gray-600">مريض جديد - أعراض صداع مستمر</div>
+                            </div>
+                            <div class="text-sm text-gray-500">منذ ساعة</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Section -->
+            <div id="attendanceSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-clock text-blue-600 ml-3"></i>
+                        تسجيل الحضور والانصراف
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="text-center p-6 bg-green-50 rounded-lg border-2 border-dashed border-green-300">
+                            <i class="fas fa-sign-in-alt text-4xl text-green-600 mb-4"></i>
+                            <h4 class="text-xl font-bold text-gray-800 mb-2">تسجيل الحضور</h4>
+                            <p class="text-gray-600 mb-4">سجل حضورك لبداية يوم العمل</p>
+                            <button onclick="checkIn()" id="checkInBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                <i class="fas fa-check ml-2"></i>تسجيل الحضور
+                            </button>
+                            <div class="mt-3 text-sm text-gray-600" id="checkInTime">-</div>
+                        </div>
+                        
+                        <div class="text-center p-6 bg-red-50 rounded-lg border-2 border-dashed border-red-300">
+                            <i class="fas fa-sign-out-alt text-4xl text-red-600 mb-4"></i>
+                            <h4 class="text-xl font-bold text-gray-800 mb-2">تسجيل الانصراف</h4>
+                            <p class="text-gray-600 mb-4">سجل انصرافك لنهاية يوم العمل</p>
+                            <button onclick="checkOut()" id="checkOutBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors" disabled>
+                                <i class="fas fa-times ml-2"></i>تسجيل الانصراف
+                            </button>
+                            <div class="mt-3 text-sm text-gray-600" id="checkOutTime">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance History -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-history text-blue-600 ml-3"></i>
+                        سجل الحضور والانصراف
+                    </h3>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-right">التاريخ</th>
+                                    <th class="px-4 py-3 text-center">وقت الحضور</th>
+                                    <th class="px-4 py-3 text-center">وقت الانصراف</th>
+                                    <th class="px-4 py-3 text-center">عدد الساعات</th>
+                                    <th class="px-4 py-3 text-center">الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTable">
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-4 py-3">2024-01-15</td>
+                                    <td class="px-4 py-3 text-center">08:00 ص</td>
+                                    <td class="px-4 py-3 text-center">04:00 م</td>
+                                    <td class="px-4 py-3 text-center">8</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">حاضر</span>
+                                    </td>
+                                </tr>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-4 py-3">2024-01-14</td>
+                                    <td class="px-4 py-3 text-center">08:15 ص</td>
+                                    <td class="px-4 py-3 text-center">04:30 م</td>
+                                    <td class="px-4 py-3 text-center">8.25</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">حاضر</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests Section -->
+            <div id="requestsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-file-alt text-blue-600 ml-3"></i>
+                            تقديم طلب
+                        </h3>
+                        <button onclick="showRequestForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus ml-2"></i>طلب جديد
+                        </button>
+                    </div>
+                    
+                    <!-- Request Form -->
+                    <div id="requestForm" class="hidden bg-gray-50 p-6 rounded-lg mb-6">
+                        <form id="newRequestForm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">نوع الطلب</label>
+                                    <select id="requestType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="vacation">إجازة اعتيادية</option>
+                                        <option value="sick">إجازة مرضية</option>
+                                        <option value="emergency">إجازة عارضة</option>
+                                        <option value="permission">إذن صباحي/مسائي</option>
+                                        <option value="training">مأمورية تدريب</option>
+                                        <option value="other">أخرى</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">القائم بالعمل</label>
+                                    <input type="text" id="replacement" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="اسم الطبيب البديل">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">من تاريخ</label>
+                                    <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ</label>
+                                    <input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                                <textarea id="requestNotes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="أي ملاحظات إضافية..."></textarea>
+                            </div>
+                            <div class="mt-6 flex space-x-4">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                    <i class="fas fa-paper-plane ml-2"></i>إرسال الطلب
+                                </button>
+                                <button type="button" onclick="hideRequestForm()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                                    إلغاء
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Requests History -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-history text-blue-600 ml-3"></i>
+                        سجل الطلبات
+                    </h3>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-right">التاريخ</th>
+                                    <th class="px-4 py-3 text-center">نوع الطلب</th>
+                                    <th class="px-4 py-3 text-center">الفترة</th>
+                                    <th class="px-4 py-3 text-center">الحالة</th>
+                                    <th class="px-4 py-3 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requestsTable">
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-4 py-3">2024-01-10</td>
+                                    <td class="px-4 py-3 text-center">إجازة اعتيادية</td>
+                                    <td class="px-4 py-3 text-center">15-17 يناير</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">معتمد</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-4 py-3">2024-01-05</td>
+                                    <td class="px-4 py-3 text-center">إذن صباحي</td>
+                                    <td class="px-4 py-3 text-center">8 يناير</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">قيد المراجعة</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consultations Section -->
+            <div id="consultationsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-comments text-blue-600 ml-3"></i>
+                        الاستشارات الواردة
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800">أحمد خالد</div>
+                                            <div class="text-sm text-gray-600">رقم القومي: 12345678901234</div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mr-2">صداع مستمر</span>
+                                        <span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">عاجل</span>
+                                    </div>
+                                    <p class="text-gray-700 text-sm">أعاني من صداع مستمر منذ أسبوع مع دوخة أحياناً، وقد تناولت مسكنات ولكن لم تفد...</p>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                        <i class="fas fa-reply ml-1"></i>رد
+                                    </button>
+                                    <button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                        <i class="fas fa-eye ml-1"></i>عرض
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fas fa-user text-pink-600"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800">فاطمة علي</div>
+                                            <div class="text-sm text-gray-600">رقم القومي: 98765432109876</div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2">أمراض نساء</span>
+                                        <span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">عادي</span>
+                                    </div>
+                                    <p class="text-gray-700 text-sm">أود استشارة حول بعض الأعراض التي أعاني منها مؤخراً، وهل تحتاج إلى فحص مباشر...</p>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                        <i class="fas fa-reply ml-1"></i>رد
+                                    </button>
+                                    <button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                        <i class="fas fa-eye ml-1"></i>عرض
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Section -->
+            <div id="scheduleSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-calendar-alt text-blue-600 ml-3"></i>
+                        جدول العمل
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الأحد</h4>
+                            <div class="space-y-2">
+                                <div class="bg-green-100 text-green-800 p-2 rounded text-sm">شيفت صباحي</div>
+                                <div class="text-xs text-gray-600">8:00 ص - 2:00 م</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الإثنين</h4>
+                            <div class="space-y-2">
+                                <div class="bg-green-100 text-green-800 p-2 rounded text-sm">شيفت صباحي</div>
+                                <div class="text-xs text-gray-600">8:00 ص - 2:00 م</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الثلاثاء</h4>
+                            <div class="space-y-2">
+                                <div class="bg-blue-100 text-blue-800 p-2 rounded text-sm">شيفت مسائي</div>
+                                <div class="text-xs text-gray-600">2:00 م - 8:00 م</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الأربعاء</h4>
+                            <div class="space-y-2">
+                                <div class="bg-green-100 text-green-800 p-2 rounded text-sm">شيفت صباحي</div>
+                                <div class="text-xs text-gray-600">8:00 ص - 2:00 م</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الخميس</h4>
+                            <div class="space-y-2">
+                                <div class="bg-blue-100 text-blue-800 p-2 rounded text-sm">شيفت مسائي</div>
+                                <div class="text-xs text-gray-600">2:00 م - 8:00 م</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">الجمعة</h4>
+                            <div class="space-y-2">
+                                <div class="bg-red-100 text-red-800 p-2 rounded text-sm">إجازة</div>
+                                <div class="text-xs text-gray-600">-</div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="font-bold text-gray-700 mb-3">السبت</h4>
+                            <div class="space-y-2">
+                                <div class="bg-red-100 text-red-800 p-2 rounded text-sm">إجازة</div>
+                                <div class="text-xs text-gray-600">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div id="profileSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-user-cog text-blue-600 ml-3"></i>
+                        الملف الشخصي
+                    </h3>
+                    
+                    <form class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
+                                <input type="text" value="د. أحمد محمد" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">التخصص</label>
+                                <input type="text" value="استشاري طب أسرة" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">رقم التليفون</label>
+                                <input type="tel" value="01234567890" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                                <input type="email" value="doctor@healthcenter.com" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الحالية</label>
+                            <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الجديدة</label>
+                            <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">تأكيد كلمة المرور</label>
+                            <input type="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                <i class="fas fa-save ml-2"></i>حفظ التغييرات
+                            </button>
+                            <button type="button" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                                <i class="fas fa-times ml-2"></i>إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        let currentUser = null;
+        let isCheckedIn = false;
+
+        // Authentication
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = userCredential.user;
+                document.getElementById('loginModal').style.display = 'none';
+                loadDoctorData();
+            } catch (error) {
+                alert('خطأ في تسجيل الدخول: ' + error.message);
+            }
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                currentUser = null;
+                document.getElementById('loginModal').style.display = 'flex';
+            } catch (error) {
+                alert('خطأ في تسجيل الخروج: ' + error.message);
+            }
+        });
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = item.dataset.section;
+                showSection(section);
+                
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        // Sidebar toggle
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            document.body.classList.toggle('collapsed');
+        });
+
+        document.getElementById('mobileToggleSidebar').addEventListener('click', () => {
+            document.body.classList.toggle('collapsed');
+        });
+
+        // Show section
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+            
+            // Update page title
+            const titles = {
+                dashboard: 'لوحة التحكم',
+                attendance: 'الحضور والانصراف',
+                requests: 'الطلبات',
+                consultations: 'الاستشارات',
+                schedule: 'الجدول',
+                profile: 'الملف الشخصي'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionName];
+        }
+
+        // Load doctor data
+        function loadDoctorData() {
+            // This would load from Firestore in real implementation
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+
+        // Attendance functions
+        window.checkIn = function() {
+            const now = new Date();
+            const checkInTime = now.toLocaleTimeString('ar-EG');
+            
+            document.getElementById('checkInTime').textContent = checkInTime;
+            document.getElementById('checkInBtn').disabled = true;
+            document.getElementById('checkOutBtn').disabled = false;
+            
+            // Save to database
+            const attendanceData = {
+                doctorId: currentUser.uid,
+                date: now.toISOString().split('T')[0],
+                checkIn: now.toISOString(),
+                status: 'present'
+            };
+            
+            const attendanceRef = ref(database, 'attendance');
+            push(attendanceRef, attendanceData);
+            
+            isCheckedIn = true;
+            alert('تم تسجيل الحضور بنجاح');
+        };
+
+        window.checkOut = function() {
+            if (!isCheckedIn) {
+                alert('يجب تسجيل الحضور أولاً');
+                return;
+            }
+            
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('ar-EG');
+            
+            document.getElementById('checkOutTime').textContent = checkOutTime;
+            document.getElementById('checkInBtn').disabled = false;
+            document.getElementById('checkOutBtn').disabled = true;
+            
+            // Update database
+            // This would update the existing record in real implementation
+            
+            isCheckedIn = false;
+            alert('تم تسجيل الانصراف بنجاح');
+        };
+
+        // Requests functions
+        window.showRequestForm = function() {
+            document.getElementById('requestForm').classList.remove('hidden');
+        };
+
+        window.hideRequestForm = function() {
+            document.getElementById('requestForm').classList.add('hidden');
+        };
+
+        document.getElementById('newRequestForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const requestData = {
+                type: document.getElementById('requestType').value,
+                replacement: document.getElementById('replacement').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                notes: document.getElementById('requestNotes').value,
+                doctorId: currentUser.uid,
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            };
+            
+            const requestsRef = ref(database, 'requests');
+            push(requestsRef, requestData)
+                .then(() => {
+                    alert('تم إرسال الطلب بنجاح');
+                    hideRequestForm();
+                    document.getElementById('newRequestForm').reset();
+                })
+                .catch(error => {
+                    alert('خطأ في إرسال الطلب: ' + error.message);
+                });
+        });
+
+        // Update time
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-EG');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('dashboard');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حجز المواعيد - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .form-card {
+            transition: all 0.3s ease;
+        }
+        .form-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .time-slot {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .time-slot:hover {
+            background-color: #f3f4f6;
+        }
+        .time-slot.selected {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        .time-slot.unavailable {
+            background-color: #fee2e2;
+            color: #dc2626;
+            cursor: not-allowed;
+        }
+        .calendar-day {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .calendar-day:hover {
+            background-color: #f3f4f6;
+        }
+        .calendar-day.selected {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        .calendar-day.unavailable {
+            background-color: #fee2e2;
+            color: #dc2626;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-alt text-2xl text-white ml-3"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">حجز المواعيد</h1>
+                        <p class="text-white/80 text-sm">احجز موعدك مسبقاً</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-white font-semibold" id="currentTime"></div>
+                    <div class="text-white/80 text-sm" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Booking Form -->
+            <div class="form-card bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-user-plus text-purple-600 ml-3"></i>
+                    معلومات الحجز
+                </h2>
+                
+                <form id="bookingForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">الاسم الرباعي *</label>
+                            <input type="text" id="fullName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">الرقم القومي *</label>
+                            <input type="text" id="nationalId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" required maxlength="14">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">رقم التليفون *</label>
+                            <input type="tel" id="phoneNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" required maxlength="11">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                            <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">العيادة *</label>
+                        <select id="clinicSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                            <option value="">اختر العيادة</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">سبب الزيارة</label>
+                        <textarea id="visitReason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="وصف مختصر لسبب الزيارة..."></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Calendar Selection -->
+            <div class="form-card bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-calendar-day text-purple-600 ml-3"></i>
+                    اختيار التاريخ
+                </h3>
+                
+                <div class="grid grid-cols-7 gap-2 mb-4">
+                    <div class="text-center font-bold text-gray-600 py-2">الأحد</div>
+                    <div class="text-center font-bold text-gray-600 py-2">الإثنين</div>
+                    <div class="text-center font-bold text-gray-600 py-2">الثلاثاء</div>
+                    <div class="text-center font-bold text-gray-600 py-2">الأربعاء</div>
+                    <div class="text-center font-bold text-gray-600 py-2">الخميس</div>
+                    <div class="text-center font-bold text-gray-600 py-2">الجمعة</div>
+                    <div class="text-center font-bold text-gray-600 py-2">السبت</div>
+                </div>
+                
+                <div id="calendar" class="grid grid-cols-7 gap-2">
+                    <!-- Calendar days will be generated here -->
+                </div>
+            </div>
+
+            <!-- Time Slots -->
+            <div class="form-card bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-clock text-purple-600 ml-3"></i>
+                    اختيار الوقت
+                </h3>
+                
+                <div class="mb-4">
+                    <h4 class="font-bold text-gray-700 mb-3">الشيفت الصباحي (8 ص - 2 م)</h4>
+                    <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" id="morningSlots">
+                        <!-- Morning time slots will be generated here -->
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-gray-700 mb-3">الشيفت المسائي (2 م - 8 م)</h4>
+                    <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" id="eveningSlots">
+                        <!-- Evening time slots will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Summary -->
+            <div class="form-card bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-clipboard-list text-purple-600 ml-3"></i>
+                    ملخص الحجز
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">الاسم:</span>
+                            <span id="summaryName" class="text-gray-600">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">العيادة:</span>
+                            <span id="summaryClinic" class="text-gray-600">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">التاريخ:</span>
+                            <span id="summaryDate" class="text-gray-600">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">الوقت:</span>
+                            <span id="summaryTime" class="text-gray-600">-</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">رقم التليفون:</span>
+                            <span id="summaryPhone" class="text-gray-600">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">البريد الإلكتروني:</span>
+                            <span id="summaryEmail" class="text-gray-600">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">سبب الزيارة:</span>
+                            <span id="summaryReason" class="text-gray-600">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button onclick="submitBooking()" id="submitBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-12 py-4 rounded-lg text-xl font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-calendar-check ml-2"></i>
+                    تأكيد الحجز
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center">
+            <i class="fas fa-check-circle text-6xl text-green-600 mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">تم الحجز بنجاح!</h2>
+            <p class="text-gray-600 mb-6">سيتم إرسال تفاصيل الحجز إلى بريدك الإلكتروني ورقم تليفونك</p>
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                <div class="text-sm text-gray-600">
+                    <div>رقم الحجز: <span id="bookingNumber" class="font-bold"></span></div>
+                    <div>الرجاء الاحتفاظ بهذا الرقم</div>
+                </div>
+            </div>
+            <button onclick="closeSuccessModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors">
+                حسناً
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let selectedDate = null;
+        let selectedTime = null;
+        let selectedClinic = null;
+
+        // Load clinics
+        function loadClinics() {
+            const clinicsRef = ref(database, 'clinics');
+            onValue(clinicsRef, (snapshot) => {
+                const clinics = snapshot.val();
+                const clinicSelect = document.getElementById('clinicSelect');
+                clinicSelect.innerHTML = '<option value="">اختر العيادة</option>';
+                
+                if (clinics) {
+                    Object.values(clinics).forEach(clinic => {
+                        const option = document.createElement('option');
+                        option.value = clinic.number;
+                        option.textContent = clinic.name;
+                        clinicSelect.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        // Generate calendar
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                calendar.appendChild(emptyDay);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day text-center py-2 px-1 rounded-lg border';
+                dayElement.textContent = day;
+                
+                const dayDate = new Date(currentYear, currentMonth, day);
+                const isToday = dayDate.toDateString() === today.toDateString();
+                const isPast = dayDate < today;
+                const isWeekend = dayDate.getDay() === 5 || dayDate.getDay() === 6; // Friday or Saturday
+                
+                if (isPast) {
+                    dayElement.classList.add('unavailable');
+                } else if (isWeekend) {
+                    dayElement.classList.add('unavailable');
+                } else {
+                    dayElement.onclick = () => selectDate(dayDate, dayElement);
+                }
+                
+                if (isToday) {
+                    dayElement.style.fontWeight = 'bold';
+                }
+                
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        function selectDate(date, element) {
+            // Remove previous selection
+            document.querySelectorAll('.calendar-day.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select new date
+            element.classList.add('selected');
+            selectedDate = date;
+            
+            generateTimeSlots();
+            updateSummary();
+        }
+
+        // Generate time slots
+        function generateTimeSlots() {
+            const morningSlots = document.getElementById('morningSlots');
+            const eveningSlots = document.getElementById('eveningSlots');
+            
+            morningSlots.innerHTML = '';
+            eveningSlots.innerHTML = '';
+            
+            // Morning slots (8 AM - 2 PM)
+            for (let hour = 8; hour < 14; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const timeSlot = createTimeSlot(hour, minute);
+                    morningSlots.appendChild(timeSlot);
+                }
+            }
+            
+            // Evening slots (2 PM - 8 PM)
+            for (let hour = 14; hour < 20; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const timeSlot = createTimeSlot(hour, minute);
+                    eveningSlots.appendChild(timeSlot);
+                }
+            }
+        }
+
+        function createTimeSlot(hour, minute) {
+            const slot = document.createElement('div');
+            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            
+            slot.className = 'time-slot text-center py-2 px-3 rounded-lg border';
+            slot.textContent = timeString;
+            
+            // Randomly make some slots unavailable for demo
+            const isUnavailable = Math.random() < 0.2;
+            
+            if (isUnavailable) {
+                slot.classList.add('unavailable');
+            } else {
+                slot.onclick = () => selectTime(timeString, slot);
+            }
+            
+            return slot;
+        }
+
+        function selectTime(time, element) {
+            // Remove previous selection
+            document.querySelectorAll('.time-slot.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select new time
+            element.classList.add('selected');
+            selectedTime = time;
+            updateSummary();
+        }
+
+        // Update booking summary
+        function updateSummary() {
+            const fullName = document.getElementById('fullName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const email = document.getElementById('email').value;
+            const visitReason = document.getElementById('visitReason').value;
+            const clinicSelect = document.getElementById('clinicSelect');
+            
+            selectedClinic = clinicSelect.options[clinicSelect.selectedIndex]?.text || '-';
+            
+            document.getElementById('summaryName').textContent = fullName || '-';
+            document.getElementById('summaryClinic').textContent = selectedClinic;
+            document.getElementById('summaryDate').textContent = selectedDate ? selectedDate.toLocaleDateString('ar-EG') : '-';
+            document.getElementById('summaryTime').textContent = selectedTime || '-';
+            document.getElementById('summaryPhone').textContent = phoneNumber || '-';
+            document.getElementById('summaryEmail').textContent = email || '-';
+            document.getElementById('summaryReason').textContent = visitReason || '-';
+            
+            // Enable/disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            const isValid = fullName && phoneNumber && selectedClinic !== '-' && selectedDate && selectedTime;
+            submitBtn.disabled = !isValid;
+        }
+
+        // Form event listeners
+        document.getElementById('fullName').addEventListener('input', updateSummary);
+        document.getElementById('phoneNumber').addEventListener('input', updateSummary);
+        document.getElementById('email').addEventListener('input', updateSummary);
+        document.getElementById('visitReason').addEventListener('input', updateSummary);
+        document.getElementById('clinicSelect').addEventListener('change', updateSummary);
+
+        // Submit booking
+        window.submitBooking = function() {
+            if (document.getElementById('submitBtn').disabled) return;
+            
+            const bookingData = {
+                fullName: document.getElementById('fullName').value,
+                nationalId: document.getElementById('nationalId').value,
+                phoneNumber: document.getElementById('phoneNumber').value,
+                email: document.getElementById('email').value,
+                clinicId: document.getElementById('clinicSelect').value,
+                clinicName: selectedClinic,
+                date: selectedDate.toISOString(),
+                time: selectedTime,
+                visitReason: document.getElementById('visitReason').value,
+                bookingNumber: generateBookingNumber(),
+                timestamp: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            const bookingsRef = ref(database, 'appointments');
+            push(bookingsRef, bookingData)
+                .then(() => {
+                    document.getElementById('bookingNumber').textContent = bookingData.bookingNumber;
+                    document.getElementById('successModal').classList.remove('hidden');
+                    document.getElementById('successModal').classList.add('flex');
+                    
+                    // Reset form
+                    document.getElementById('bookingForm').reset();
+                    selectedDate = null;
+                    selectedTime = null;
+                    selectedClinic = null;
+                    updateSummary();
+                })
+                .catch(error => {
+                    alert('خطأ في الحجز: ' + error.message);
+                });
+        };
+
+        function generateBookingNumber() {
+            const prefix = 'HC';
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            return prefix + timestamp + random;
+        }
+
+        window.closeSuccessModal = function() {
+            document.getElementById('successModal').classList.add('hidden');
+            document.getElementById('successModal').classList.remove('flex');
+        };
+
+        // Initialize
+        loadClinics();
+        generateCalendar();
+        generateTimeSlots();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>

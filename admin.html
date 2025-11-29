@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .sidebar { width: 280px; transition: all 0.3s ease; }
+        .main-content { margin-right: 280px; transition: all 0.3s ease; }
+        .collapsed .sidebar { transform: translateX(100%); }
+        .collapsed .main-content { margin-right: 0; }
+        .nav-item { transition: all 0.3s ease; }
+        .nav-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .nav-item.active { background-color: rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <i class="fas fa-user-shield text-4xl text-red-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">تسجيل دخول المدير</h2>
+                <p class="text-gray-600">أدخل بياناتك للوصول إلى لوحة التحكم</p>
+            </div>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                    <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" required>
+                </div>
+                <button type="submit" class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors">
+                    <i class="fas fa-sign-in-alt ml-2"></i>تسجيل الدخول
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar fixed right-0 top-0 h-full bg-gradient-to-b from-red-600 to-red-700 text-white z-40">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center">
+                    <i class="fas fa-cog text-2xl ml-3"></i>
+                    <h1 class="text-xl font-bold">لوحة التحكم</h1>
+                </div>
+                <button id="toggleSidebar" class="lg:hidden text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="nav-item active flex items-center p-3 rounded-lg" data-section="general">
+                    <i class="fas fa-cogs ml-3"></i>
+                    <span>الإعدادات العامة</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="screens">
+                    <i class="fas fa-desktop ml-3"></i>
+                    <span>إدارة الشاشات</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="clinics">
+                    <i class="fas fa-hospital ml-3"></i>
+                    <span>إدارة العيادات</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="doctors">
+                    <i class="fas fa-user-md ml-3"></i>
+                    <span>إدارة الأطباء</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="calls">
+                    <i class="fas fa-bullhorn ml-3"></i>
+                    <span>إعدادات النداء</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="reports">
+                    <i class="fas fa-chart-bar ml-3"></i>
+                    <span>التقارير</span>
+                </a>
+                <a href="#" class="nav-item flex items-center p-3 rounded-lg" data-section="backup">
+                    <i class="fas fa-database ml-3"></i>
+                    <span>النسخ الاحتياطي</span>
+                </a>
+            </nav>
+        </div>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-6">
+            <button id="logoutBtn" class="w-full bg-white/20 hover:bg-white/30 text-white py-3 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt ml-2"></i>تسجيل الخروج
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <button id="mobileToggleSidebar" class="lg:hidden text-gray-600 mr-4">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">الإعدادات العامة</h2>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-600">مرحباً، <span id="adminName">مدير النظام</span></span>
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23dc2626'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-family='Arial'%3Eم%3C/text%3E%3C/svg%3E" alt="Admin" class="w-10 h-10 rounded-full">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="p-6">
+            <!-- General Settings Section -->
+            <div id="generalSection" class="section">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-cogs text-red-600 ml-3"></i>
+                        الإعدادات العامة
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">اسم المركز</label>
+                            <input type="text" id="centerName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">محتوى الشريط الإخباري</label>
+                            <input type="text" id="newsTicker" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">مدة عرض التنبيه (ثواني)</label>
+                            <input type="number" id="alertDuration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" min="1" max="30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">سرعة النطق</label>
+                            <select id="speechRate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                <option value="0.5">بطيئة</option>
+                                <option value="1">عادية</option>
+                                <option value="1.5">سريعة</option>
+                                <option value="2">سريعة جداً</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button onclick="saveGeneralSettings()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-save ml-2"></i>حفظ الإعدادات
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-folder text-red-600 ml-3"></i>
+                        مسارات الملفات
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">مسار ملفات الصوت</label>
+                            <input type="text" id="audioPath" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="./audio">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">مسار الميديا</label>
+                            <input type="text" id="mediaPath" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="./media">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">مسار الصوتيات الجاهزة</label>
+                            <input type="text" id="instantPath" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="./instant">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screens Management Section -->
+            <div id="screensSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-desktop text-red-600 ml-3"></i>
+                            إدارة الشاشات
+                        </h3>
+                        <button onclick="addScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-plus ml-2"></i>إضافة شاشة
+                        </button>
+                    </div>
+                    <div id="screensList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Screens will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clinics Management Section -->
+            <div id="clinicsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-hospital text-red-600 ml-3"></i>
+                            إدارة العيادات
+                        </h3>
+                        <button onclick="addClinic()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-plus ml-2"></i>إضافة عيادة
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-right">رقم العيادة</th>
+                                    <th class="px-4 py-3 text-right">اسم العيادة</th>
+                                    <th class="px-4 py-3 text-right">الشاشة</th>
+                                    <th class="px-4 py-3 text-center">الحالة</th>
+                                    <th class="px-4 py-3 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clinicsTable">
+                                <!-- Clinics will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctors Management Section -->
+            <div id="doctorsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-user-md text-red-600 ml-3"></i>
+                            إدارة الأطباء
+                        </h3>
+                        <div class="flex space-x-3">
+                            <button onclick="importDoctors()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-upload ml-2"></i>استيراد بيانات
+                            </button>
+                            <button onclick="addDoctor()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                <i class="fas fa-plus ml-2"></i>إضافة طبيب
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-right">رقم الطبيب</th>
+                                    <th class="px-4 py-3 text-right">اسم الطبيب</th>
+                                    <th class="px-4 py-3 text-right">التخصص</th>
+                                    <th class="px-4 py-3 text-right">العيادة</th>
+                                    <th class="px-4 py-3 text-center">الحالة</th>
+                                    <th class="px-4 py-3 text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorsTable">
+                                <!-- Doctors will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calls Settings Section -->
+            <div id="callsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-bullhorn text-red-600 ml-3"></i>
+                        إعدادات النداء
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">اختر العيادة</label>
+                            <select id="callClinicSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                <option value="">اختر العيادة</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">رقم العميل</label>
+                            <input type="number" id="callNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <button onclick="callSpecificClient()" class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-bullhorn ml-2"></i>نداء عميل محدد
+                        </button>
+                        <button onclick="emergencyCall()" class="bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-exclamation-triangle ml-2"></i>حالة طارئة
+                        </button>
+                        <button onclick="broadcastMessage()" class="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-volume-up ml-2"></i>إذاعة رسالة
+                        </button>
+                        <button onclick="resetAllClinics()" class="bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-refresh ml-2"></i>تصفير الكل
+                        </button>
+                    </div>
+
+                    <div class="border-t pt-6">
+                        <h4 class="font-bold mb-4">تسجيل صوتي مؤقت</h4>
+                        <div class="flex items-center space-x-4">
+                            <button id="recordBtn" onclick="toggleRecording()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                                <i class="fas fa-microphone ml-2"></i>تسجيل (10 ثواني)
+                            </button>
+                            <div id="recordingStatus" class="text-gray-600">جاهز للتسجيل</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reportsSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-chart-bar text-red-600 ml-3"></i>
+                        التقارير والإحصائيات
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg text-white">
+                            <i class="fas fa-users text-3xl mb-3"></i>
+                            <div class="text-2xl font-bold" id="totalPatients">0</div>
+                            <div class="text-blue-100">إجمالي المرضى اليوم</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg text-white">
+                            <i class="fas fa-clock text-3xl mb-3"></i>
+                            <div class="text-2xl font-bold" id="avgWaitTime">0</div>
+                            <div class="text-green-100">متوسط وقت الانتظار</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-lg text-white">
+                            <i class="fas fa-user-md text-3xl mb-3"></i>
+                            <div class="text-2xl font-bold" id="activeDoctors">0</div>
+                            <div class="text-purple-100">أطباء نشطاء</div>
+                        </div>
+                        <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-lg text-white">
+                            <i class="fas fa-check-circle text-3xl mb-3"></i>
+                            <div class="text-2xl font-bold" id="completedVisits">0</div>
+                            <div class="text-orange-100">زيارات مكتملة</div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-right">العيادة</th>
+                                    <th class="px-4 py-3 text-center">المرضى</th>
+                                    <th class="px-4 py-3 text-center">متوسط الانتظار</th>
+                                    <th class="px-4 py-3 text-center">الكفاءة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTable">
+                                <!-- Reports will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup Section -->
+            <div id="backupSection" class="section hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold mb-6 flex items-center">
+                        <i class="fas fa-database text-red-600 ml-3"></i>
+                        النسخ الاحتياطي
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <h4 class="font-bold mb-4">نسخ احتياطي للبيانات</h4>
+                            <p class="text-gray-600 mb-4">قم بإنشاء نسخة احتياطية من جميع بيانات النظام</p>
+                            <button onclick="createBackup()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-download ml-2"></i>إنشاء نسخة احتياطية
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <h4 class="font-bold mb-4">استعادة البيانات</h4>
+                            <p class="text-gray-600 mb-4">استعد بياناتك من ملف نسخ احتياطي</p>
+                            <input type="file" id="backupFile" accept=".json" class="mb-4">
+                            <button onclick="restoreBackup()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-upload ml-2"></i>استعادة البيانات
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="fixed top-4 left-4 z-50"></div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+        const firestore = getFirestore(app);
+
+        let currentUser = null;
+        let mediaRecorder = null;
+        let isRecording = false;
+
+        // Authentication
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                currentUser = userCredential.user;
+                document.getElementById('loginModal').style.display = 'none';
+                loadAdminData();
+            } catch (error) {
+                showMessage('خطأ في تسجيل الدخول: ' + error.message, 'error');
+            }
+        });
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                currentUser = null;
+                document.getElementById('loginModal').style.display = 'flex';
+                showMessage('تم تسجيل الخروج بنجاح', 'success');
+            } catch (error) {
+                showMessage('خطأ في تسجيل الخروج: ' + error.message, 'error');
+            }
+        });
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = item.dataset.section;
+                showSection(section);
+                
+                // Update active nav item
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        // Sidebar toggle
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            document.body.classList.toggle('collapsed');
+        });
+
+        document.getElementById('mobileToggleSidebar').addEventListener('click', () => {
+            document.body.classList.toggle('collapsed');
+        });
+
+        // Show section
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+            
+            // Update page title
+            const titles = {
+                general: 'الإعدادات العامة',
+                screens: 'إدارة الشاشات',
+                clinics: 'إدارة العيادات',
+                doctors: 'إدارة الأطباء',
+                calls: 'إعدادات النداء',
+                reports: 'التقارير',
+                backup: 'النسخ الاحتياطي'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionName];
+        }
+
+        // Load admin data
+        function loadAdminData() {
+            loadGeneralSettings();
+            loadScreens();
+            loadClinics();
+            loadDoctors();
+            loadReports();
+        }
+
+        // General Settings
+        function loadGeneralSettings() {
+            const settingsRef = ref(database, 'settings');
+            onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings) {
+                    document.getElementById('centerName').value = settings.centerName || '';
+                    document.getElementById('newsTicker').value = settings.newsTicker || '';
+                    document.getElementById('alertDuration').value = settings.alertDuration || 5;
+                    document.getElementById('speechRate').value = settings.speechRate || 1;
+                    document.getElementById('audioPath').value = settings.audioPath || './audio';
+                    document.getElementById('mediaPath').value = settings.mediaPath || './media';
+                    document.getElementById('instantPath').value = settings.instantPath || './instant';
+                }
+            });
+        }
+
+        window.saveGeneralSettings = function() {
+            const settings = {
+                centerName: document.getElementById('centerName').value,
+                newsTicker: document.getElementById('newsTicker').value,
+                alertDuration: parseInt(document.getElementById('alertDuration').value),
+                speechRate: parseFloat(document.getElementById('speechRate').value),
+                audioPath: document.getElementById('audioPath').value,
+                mediaPath: document.getElementById('mediaPath').value,
+                instantPath: document.getElementById('instantPath').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            set(ref(database, 'settings'), settings)
+                .then(() => showMessage('تم حفظ الإعدادات بنجاح', 'success'))
+                .catch(error => showMessage('خطأ في الحفظ: ' + error.message, 'error'));
+        };
+
+        // Screens Management
+        function loadScreens() {
+            const screensRef = ref(database, 'screens');
+            onValue(screensRef, (snapshot) => {
+                const screens = snapshot.val();
+                const screensList = document.getElementById('screensList');
+                screensList.innerHTML = '';
+                
+                if (screens) {
+                    Object.values(screens).forEach(screen => {
+                        const screenCard = createScreenCard(screen);
+                        screensList.appendChild(screenCard);
+                    });
+                }
+            });
+        }
+
+        function createScreenCard(screen) {
+            const card = document.createElement('div');
+            card.className = 'bg-gray-50 p-4 rounded-lg';
+            card.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-bold">شاشة ${screen.id}</h4>
+                    <div class="flex items-center">
+                        <input type="checkbox" ${screen.isActive ? 'checked' : ''} 
+                               onchange="toggleScreen(${screen.id})" 
+                               class="mr-2">
+                        <span class="text-sm">نشط</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600 mb-3">
+                    <div>كلمة السر: ${screen.password}</div>
+                    <div>العيادات: ${screen.currentClinics ? screen.currentClinics.length : 0}</div>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="editScreen(${screen.id})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteScreen(${screen.id})" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            return card;
+        }
+
+        window.addScreen = function() {
+            const newId = prompt('أدخل رقم الشاشة:');
+            if (newId) {
+                const screenData = {
+                    id: parseInt(newId),
+                    name: `شاشة ${newId}`,
+                    password: 'screen123',
+                    isActive: true,
+                    currentClinics: [],
+                    createdAt: new Date().toISOString()
+                };
+                
+                set(ref(database, `screens/${newId}`), screenData)
+                    .then(() => showMessage('تم إضافة الشاشة بنجاح', 'success'))
+                    .catch(error => showMessage('خطأ في الإضافة: ' + error.message, 'error'));
+            }
+        };
+
+        // Clinics Management
+        function loadClinics() {
+            const clinicsRef = ref(database, 'clinics');
+            onValue(clinicsRef, (snapshot) => {
+                const clinics = snapshot.val();
+                const clinicsTable = document.getElementById('clinicsTable');
+                clinicsTable.innerHTML = '';
+                
+                if (clinics) {
+                    Object.values(clinics).forEach(clinic => {
+                        const row = createClinicRow(clinic);
+                        clinicsTable.appendChild(row);
+                    });
+                    
+                    // Update call clinic select
+                    const callSelect = document.getElementById('callClinicSelect');
+                    callSelect.innerHTML = '<option value="">اختر العيادة</option>';
+                    Object.values(clinics).forEach(clinic => {
+                        const option = document.createElement('option');
+                        option.value = clinic.number;
+                        option.textContent = clinic.name;
+                        callSelect.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        function createClinicRow(clinic) {
+            const row = document.createElement('tr');
+            row.className = 'border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-4 py-3">${clinic.number}</td>
+                <td class="px-4 py-3">${clinic.name}</td>
+                <td class="px-4 py-3">شاشة ${clinic.screenId || 1}</td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-1 rounded text-xs ${clinic.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${clinic.isActive ? 'نشطة' : 'متوقفة'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex justify-center space-x-2">
+                        <button onclick="editClinic(${clinic.number})" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="toggleClinicStatus(${clinic.number})" class="bg-${clinic.isActive ? 'red' : 'green'}-600 text-white px-3 py-1 rounded text-sm hover:bg-${clinic.isActive ? 'red' : 'green'}-700">
+                            <i class="fas fa-${clinic.isActive ? 'pause' : 'play'}"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        // Doctors Management
+        function loadDoctors() {
+            // This would load from Firestore in real implementation
+            const doctorsTable = document.getElementById('doctorsTable');
+            doctorsTable.innerHTML = `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">1</td>
+                    <td class="px-4 py-3">د. أحمد محمد</td>
+                    <td class="px-4 py-3">طب أسرة</td>
+                    <td class="px-4 py-3">عيادة طب الأسرة</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">نشط</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex justify-center space-x-2">
+                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Reports
+        function loadReports() {
+            // Mock data for demonstration
+            document.getElementById('totalPatients').textContent = '156';
+            document.getElementById('avgWaitTime').textContent = '12';
+            document.getElementById('activeDoctors').textContent = '8';
+            document.getElementById('completedVisits').textContent = '142';
+            
+            const reportsTable = document.getElementById('reportsTable');
+            reportsTable.innerHTML = `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">عيادة طب الأسرة</td>
+                    <td class="px-4 py-3 text-center">45</td>
+                    <td class="px-4 py-3 text-center">15 دقيقة</td>
+                    <td class="px-4 py-3 text-center">85%</td>
+                </tr>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">عيادة الباطنة</td>
+                    <td class="px-4 py-3 text-center">38</td>
+                    <td class="px-4 py-3 text-center">12 دقيقة</td>
+                    <td class="px-4 py-3 text-center">92%</td>
+                </tr>
+            `;
+        }
+
+        // Call functions
+        window.callSpecificClient = function() {
+            const clinicId = document.getElementById('callClinicSelect').value;
+            const number = document.getElementById('callNumber').value;
+            
+            if (!clinicId || !number) {
+                showMessage('يرجى اختيار العيادة ورقم العميل', 'error');
+                return;
+            }
+            
+            // This would trigger the call in real implementation
+            showMessage(`تم نداء العميل رقم ${number} في عيادة ${clinicId}`, 'success');
+        };
+
+        window.emergencyCall = function() {
+            const clinicId = document.getElementById('callClinicSelect').value;
+            if (!clinicId) {
+                showMessage('يرجى اختيار العيادة', 'error');
+                return;
+            }
+            showMessage('تم تفعيل نداء الطوارئ', 'success');
+        };
+
+        window.broadcastMessage = function() {
+            const message = prompt('أدخل الرسالة المراد إذاعتها:');
+            if (message) {
+                showMessage('تم إذاعة الرسالة', 'success');
+            }
+        };
+
+        window.resetAllClinics = function() {
+            if (confirm('هل أنت متأكد من تصفير جميع العيادات؟')) {
+                showMessage('تم تصفير جميع العيادات', 'success');
+            }
+        };
+
+        // Recording functions
+        window.toggleRecording = async function() {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        const audioBlob = new Blob([event.data], { type: 'audio/wav' });
+                        // Handle recorded audio
+                        showMessage('تم تسجيل الصوت بنجاح', 'success');
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById('recordBtn').innerHTML = '<i class="fas fa-stop ml-2"></i>إيقاف التسجيل';
+                    document.getElementById('recordingStatus').textContent = 'جاري التسجيل...';
+                    
+                    // Stop after 10 seconds
+                    setTimeout(() => {
+                        if (isRecording) {
+                            mediaRecorder.stop();
+                            stream.getTracks().forEach(track => track.stop());
+                            isRecording = false;
+                            document.getElementById('recordBtn').innerHTML = '<i class="fas fa-microphone ml-2"></i>تسجيل (10 ثواني)';
+                            document.getElementById('recordingStatus').textContent = 'تم إيقاف التسجيل';
+                        }
+                    }, 10000);
+                    
+                } catch (error) {
+                    showMessage('خطأ في الوصول إلى الميكروفون: ' + error.message, 'error');
+                }
+            } else {
+                if (mediaRecorder) {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    document.getElementById('recordBtn').innerHTML = '<i class="fas fa-microphone ml-2"></i>تسجيل (10 ثواني)';
+                    document.getElementById('recordingStatus').textContent = 'تم إيقاف التسجيل';
+                }
+            }
+        };
+
+        // Backup functions
+        window.createBackup = function() {
+            const backupData = {
+                settings: {},
+                clinics: {},
+                screens: {},
+                doctors: {},
+                timestamp: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(backupData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            showMessage('تم إنشاء النسخة الاحتياطية', 'success');
+        };
+
+        window.restoreBackup = function() {
+            const fileInput = document.getElementById('backupFile');
+            const file = fileInput.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const backupData = JSON.parse(e.target.result);
+                        showMessage('تم استعادة البيانات بنجاح', 'success');
+                    } catch (error) {
+                        showMessage('خطأ في قراءة الملف: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                showMessage('يرجى اختيار ملف النسخ الاحتياطي', 'error');
+            }
+        };
+
+        // Utility functions
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            messageDiv.className = `${bgColor} text-white px-4 py-2 rounded-lg mb-2 shadow-lg`;
+            messageDiv.textContent = message;
+            
+            messageContainer.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('general');
+        });
+    </script>
+</body>
+</html>

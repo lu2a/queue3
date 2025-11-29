@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة العميل - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .pulse-animation { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .queue-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .queue-card.next {
+            border-color: #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.5); }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-user text-2xl text-white ml-3"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">صفحة العميل</h1>
+                        <p class="text-white/80 text-sm">متابعة رقمك في الانتظار</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-white font-semibold" id="currentTime"></div>
+                    <div class="text-white/80 text-sm" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Clinic Selection -->
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-white mb-4 flex items-center">
+                <i class="fas fa-hospital text-yellow-300 ml-3"></i>
+                اختر العيادة
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div id="clinicsList">
+                    <!-- Clinics will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Status -->
+        <div id="queueSection" class="hidden">
+            <!-- Current Number Display -->
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 text-center">
+                <h2 class="text-2xl font-bold text-white mb-4">رقمك الحالي</h2>
+                <div class="text-6xl font-bold text-yellow-300 pulse-animation" id="yourNumber">0</div>
+                <div class="text-white/80 text-lg mt-2" id="queueStatus">في انتظار دورك</div>
+            </div>
+
+            <!-- Queue Progress -->
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 mb-8">
+                <h3 class="text-xl font-bold text-white mb-4">تقدم الدور</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between text-white mb-2">
+                        <span>الرقم الحالي في العيادة</span>
+                        <span id="currentClinicNumber">0</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-4">
+                        <div id="progressBar" class="progress-bar bg-yellow-400 h-4 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <div class="text-2xl font-bold text-white" id="waitingCount">0</div>
+                        <div class="text-white/80 text-sm">الأمامك</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-white" id="estimatedTime">0</div>
+                        <div class="text-white/80 text-sm">دقيقة تقريبية</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-white" id="totalWaiting">0</div>
+                        <div class="text-white/80 text-sm">إجمالي المنتظرين</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-white" id="clinicStatus">نشطة</div>
+                        <div class="text-white/80 text-sm">حالة العيادة</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 mb-8">
+                <h3 class="text-xl font-bold text-white mb-4">إجراءات سريعة</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button onclick="refreshQueue()" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-refresh text-xl mb-2 block"></i>
+                        تحديث
+                    </button>
+                    <button onclick="enableNotifications()" class="bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-bell text-xl mb-2 block"></i>
+                        تنبيهات
+                    </button>
+                    <button onclick="bookAppointment()" class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-calendar-plus text-xl mb-2 block"></i>
+                        حجز موعد
+                    </button>
+                    <button onclick="showFeedback()" class="bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-comment text-xl mb-2 block"></i>
+                        شكوى/اقتراح
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4">معلومات التواصل</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <i class="fas fa-phone text-3xl text-yellow-300 mb-3"></i>
+                    <div class="text-white font-bold">الهاتف</div>
+                    <div class="text-white/80">0123456789</div>
+                </div>
+                <div class="text-center">
+                    <i class="fas fa-envelope text-3xl text-yellow-300 mb-3"></i>
+                    <div class="text-white font-bold">البريد الإلكتروني</div>
+                    <div class="text-white/80">info@healthcenter.com</div>
+                </div>
+                <div class="text-center">
+                    <i class="fas fa-map-marker-alt text-3xl text-yellow-300 mb-3"></i>
+                    <div class="text-white font-bold">العنوان</div>
+                    <div class="text-white/80">شارع الصحة - المدينة</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <i class="fas fa-comment text-4xl text-orange-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">شكوى أو اقتراح</h2>
+                <p class="text-gray-600">نحن نهتم برأيك</p>
+            </div>
+            <form id="feedbackForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">النوع</label>
+                    <select id="feedbackType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="complaint">شكوى</option>
+                        <option value="suggestion">اقتراح</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">الاسم (اختياري)</label>
+                    <input type="text" id="feedbackName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">رقم التليفون (اختياري)</label>
+                    <input type="tel" id="feedbackPhone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني (اختياري)</label>
+                    <input type="email" id="feedbackEmail" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">النص (مطلوب)</label>
+                    <textarea id="feedbackText" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="اكتب شكواك أو اقتراحك هنا..." required maxlength="140"></textarea>
+                    <div class="text-sm text-gray-500 mt-1">
+                        <span id="charCount">0</span>/140 حرف
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ملاحظات إضافية (اختياري)</label>
+                    <textarea id="feedbackNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="flex-1 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors">
+                        <i class="fas fa-paper-plane ml-2"></i>إرسال
+                    </button>
+                    <button type="button" onclick="hideFeedback()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification bg-white rounded-lg shadow-lg p-4">
+        <div class="flex items-center">
+            <i class="fas fa-bell text-green-600 text-xl ml-3"></i>
+            <span id="notificationText" class="font-bold text-gray-800"></span>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let selectedClinicId = null;
+        let yourNumber = null;
+        let currentClinicNumber = 0;
+        let notificationsEnabled = false;
+
+        // Load clinics
+        function loadClinics() {
+            const clinicsRef = ref(database, 'clinics');
+            onValue(clinicsRef, (snapshot) => {
+                const clinics = snapshot.val();
+                const clinicsList = document.getElementById('clinicsList');
+                clinicsList.innerHTML = '';
+                
+                if (clinics) {
+                    Object.values(clinics).forEach(clinic => {
+                        const clinicCard = createClinicCard(clinic);
+                        clinicsList.appendChild(clinicCard);
+                    });
+                }
+            });
+        }
+
+        function createClinicCard(clinic) {
+            const card = document.createElement('div');
+            card.className = 'queue-card bg-white/10 backdrop-blur-sm rounded-lg p-6 cursor-pointer hover:bg-white/20 transition-colors';
+            card.onclick = () => selectClinic(clinic);
+            
+            const currentNumber = clinic.currentNumber || 0;
+            const isActive = clinic.isActive !== false;
+            
+            card.innerHTML = `
+                <div class="text-center">
+                    <h3 class="text-xl font-bold text-white mb-2">${clinic.name}</h3>
+                    <div class="text-3xl font-bold text-yellow-300 mb-2">${currentNumber}</div>
+                    <div class="text-white/80 text-sm mb-3">الرقم الحالي</div>
+                    <div class="flex items-center justify-center">
+                        <div class="w-3 h-3 rounded-full ${isActive ? 'bg-green-400' : 'bg-red-400'} mr-2"></div>
+                        <span class="text-sm ${isActive ? 'text-green-400' : 'text-red-400'}">${isActive ? 'نشطة' : 'متوقفة'}</span>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function selectClinic(clinic) {
+            selectedClinicId = clinic.number;
+            yourNumber = Math.max(0, (clinic.currentNumber || 0) + Math.floor(Math.random() * 5) + 1);
+            
+            document.getElementById('queueSection').classList.remove('hidden');
+            document.getElementById('yourNumber').textContent = yourNumber;
+            
+            updateQueueDisplay(clinic);
+            
+            // Listen for updates
+            const clinicRef = ref(database, `clinics/${selectedClinicId}`);
+            onValue(clinicRef, (snapshot) => {
+                const updatedClinic = snapshot.val();
+                if (updatedClinic) {
+                    updateQueueDisplay(updatedClinic);
+                }
+            });
+            
+            showNotification(`تم اختيار ${clinic.name} - رقمك هو ${yourNumber}`);
+        }
+
+        function updateQueueDisplay(clinic) {
+            currentClinicNumber = clinic.currentNumber || 0;
+            
+            document.getElementById('currentClinicNumber').textContent = currentClinicNumber;
+            document.getElementById('clinicStatus').textContent = clinic.isActive !== false ? 'نشطة' : 'متوقفة';
+            
+            // Calculate waiting count
+            const waitingCount = Math.max(0, yourNumber - currentClinicNumber - 1);
+            document.getElementById('waitingCount').textContent = waitingCount;
+            
+            // Calculate estimated time (assuming 5 minutes per patient)
+            const estimatedTime = waitingCount * 5;
+            document.getElementById('estimatedTime').textContent = estimatedTime;
+            
+            // Calculate total waiting (random estimate)
+            const totalWaiting = waitingCount + Math.floor(Math.random() * 3) + 1;
+            document.getElementById('totalWaiting').textContent = totalWaiting;
+            
+            // Update progress bar
+            const progress = yourNumber > 0 ? Math.min(100, (currentClinicNumber / yourNumber) * 100) : 0;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            
+            // Update queue status
+            if (yourNumber === currentClinicNumber) {
+                document.getElementById('queueStatus').textContent = 'دورك الآن!';
+                document.getElementById('yourNumber').classList.add('pulse-animation');
+                
+                if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                    new Notification('دورك الآن!', {
+                        body: `على العميل رقم ${yourNumber} التوجه إلى ${clinic.name}`,
+                        icon: '/favicon.ico'
+                    });
+                }
+            } else if (yourNumber - currentClinicNumber === 1) {
+                document.getElementById('queueStatus').textContent = 'دورك التالي';
+                document.getElementById('yourNumber').classList.add('pulse-animation');
+            } else {
+                document.getElementById('queueStatus').textContent = `متبقي ${waitingCount} أشخاص قبلك`;
+                document.getElementById('yourNumber').classList.remove('pulse-animation');
+            }
+            
+            // Update clinic card style
+            const clinicCards = document.querySelectorAll('.queue-card');
+            clinicCards.forEach(card => {
+                card.classList.remove('next');
+            });
+            
+            if (yourNumber - currentClinicNumber <= 1) {
+                const selectedCard = document.querySelector(`[onclick*="${selectedClinicId}"]`);
+                if (selectedCard) {
+                    selectedCard.classList.add('next');
+                }
+            }
+        }
+
+        // Functions
+        window.refreshQueue = function() {
+            if (selectedClinicId) {
+                showNotification('تم تحديث البيانات');
+            }
+        };
+
+        window.enableNotifications = function() {
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            notificationsEnabled = true;
+                            showNotification('تم تفعيل التنبيهات بنجاح');
+                        } else {
+                            showNotification('لم يتم السماح بالتنبيهات');
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    notificationsEnabled = true;
+                    showNotification('التنبيهات مفعالة بالفعل');
+                } else {
+                    showNotification('يرجى السماح بالتنبيهات من إعدادات المتصفح');
+                }
+            } else {
+                showNotification('متصفحك لا يدعم التنبيهات');
+            }
+        };
+
+        window.bookAppointment = function() {
+            window.location.href = 'appointment.html';
+        };
+
+        window.showFeedback = function() {
+            document.getElementById('feedbackModal').classList.remove('hidden');
+            document.getElementById('feedbackModal').classList.add('flex');
+        };
+
+        window.hideFeedback = function() {
+            document.getElementById('feedbackModal').classList.add('hidden');
+            document.getElementById('feedbackModal').classList.remove('flex');
+        };
+
+        // Feedback form handling
+        document.getElementById('feedbackForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const feedbackData = {
+                type: document.getElementById('feedbackType').value,
+                name: document.getElementById('feedbackName').value,
+                phone: document.getElementById('feedbackPhone').value,
+                email: document.getElementById('feedbackEmail').value,
+                text: document.getElementById('feedbackText').value,
+                notes: document.getElementById('feedbackNotes').value,
+                timestamp: new Date().toISOString()
+            };
+            
+            const feedbackRef = ref(database, 'feedback');
+            push(feedbackRef, feedbackData)
+                .then(() => {
+                    showNotification('تم إرسال شكواك/اقتراحك بنجاح');
+                    hideFeedback();
+                    document.getElementById('feedbackForm').reset();
+                })
+                .catch(error => {
+                    showNotification('خطأ في الإرسال: ' + error.message);
+                });
+        });
+
+        // Character counter
+        document.getElementById('feedbackText').addEventListener('input', function() {
+            const count = this.value.length;
+            document.getElementById('charCount').textContent = count;
+        });
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-EG');
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Initialize
+        loadClinics();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>

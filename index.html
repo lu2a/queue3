@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الانتظار - الصفحة الرئيسية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .pulse-animation { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-hospital text-3xl text-white ml-3"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white" id="centerName">مركز الرعاية الصحية</h1>
+                        <p class="text-white/80 text-sm">نظام إدارة الانتظار الذكي</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-white font-semibold" id="currentTime"></div>
+                    <div class="text-white/80 text-sm" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white">
+                <i class="fas fa-users text-3xl mb-2 text-yellow-300"></i>
+                <div class="text-2xl font-bold" id="totalWaiting">0</div>
+                <div class="text-sm text-white/80">إجمالي المنتظرين</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white">
+                <i class="fas fa-clinic-medical text-3xl mb-2 text-green-300"></i>
+                <div class="text-2xl font-bold" id="activeClinics">0</div>
+                <div class="text-sm text-white/80">عيادات نشطة</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white">
+                <i class="fas fa-desktop text-3xl mb-2 text-blue-300"></i>
+                <div class="text-2xl font-bold" id="activeScreens">0</div>
+                <div class="text-sm text-white/80">شاشات نشطة</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white">
+                <i class="fas fa-clock text-3xl mb-2 text-purple-300"></i>
+                <div class="text-2xl font-bold" id="avgWaitTime">0</div>
+                <div class="text-sm text-white/80">متوسط الانتظار (دقيقة)</div>
+            </div>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Admin Panel -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+                    <i class="fas fa-cog text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">لوحة التحكم</h3>
+                    <p class="text-red-100">إدارة النظام والإعدادات</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>إعدادات النظام</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>إدارة العيادات</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>إدارة المستخدمين</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>التقارير والإحصائيات</li>
+                    </ul>
+                    <a href="admin.html" class="block w-full bg-red-600 text-white text-center py-3 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-sign-in-alt ml-2"></i>الدخول إلى لوحة التحكم
+                    </a>
+                </div>
+            </div>
+
+            <!-- Display Screen -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+                    <i class="fas fa-desktop text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">شاشة العرض</h3>
+                    <p class="text-blue-100">عرض أرقام الانتظار</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>عرض الأرقام الحالية</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>شريط إخباري متحرك</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>عرض الفيديوهات</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تنبيهات الصوت والصورة</li>
+                    </ul>
+                    <a href="display.html" class="block w-full bg-blue-600 text-white text-center py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-play ml-2"></i>فتح شاشة العرض
+                    </a>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
+                    <i class="fas fa-tasks text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">لوحة التحكم</h3>
+                    <p class="text-green-100">تحكم في أرقام العيادات</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>العميل التالي والسابق</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تصفير العيادة</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>نداء رقم محدد</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تنبيهات الطوارئ</li>
+                    </ul>
+                    <a href="control.html" class="block w-full bg-green-600 text-white text-center py-3 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-sign-in-alt ml-2"></i>الدخول إلى لوحة التحكم
+                    </a>
+                </div>
+            </div>
+
+            <!-- Client Page -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
+                    <i class="fas fa-user text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">صفحة العميل</h3>
+                    <p class="text-purple-100">متابعة رقمك من هاتفك</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>متابعة رقمك</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تنبيه عند النداء</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>إرسال شكاوى واقتراحات</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>QR Code للدخول السريع</li>
+                    </ul>
+                    <a href="client.html" class="block w-full bg-purple-600 text-white text-center py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-qrcode ml-2"></i>فتح صفحة العميل
+                    </a>
+                </div>
+            </div>
+
+            <!-- Appointment Booking -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+                    <i class="fas fa-calendar-alt text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">حجز المواعيد</h3>
+                    <p class="text-orange-100">احجز موعدك مسبقاً</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>حجز موعد جديد</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>اختيار العيادة والتاريخ</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>شيفت صباحي ومسائي</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تأكيد الحجز</li>
+                    </ul>
+                    <a href="appointment.html" class="block w-full bg-orange-600 text-white text-center py-3 rounded-lg hover:bg-orange-700 transition-colors">
+                        <i class="fas fa-calendar-plus ml-2"></i>حجز موعد جديد
+                    </a>
+                </div>
+            </div>
+
+            <!-- Doctors Portal -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden card-hover">
+                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 p-6 text-white">
+                    <i class="fas fa-user-md text-4xl mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">بوابة الأطباء</h3>
+                    <p class="text-indigo-100">بوابة خاصة بالأطباء</p>
+                </div>
+                <div class="p-6">
+                    <ul class="text-gray-600 space-y-2 mb-4">
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>حضور وانصراف</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>طلب إجازات</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>الرد على الاستشارات</li>
+                        <li><i class="fas fa-check text-green-500 ml-2"></i>تقرير الحضور</li>
+                    </ul>
+                    <a href="doctors.html" class="block w-full bg-indigo-600 text-white text-center py-3 rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-sign-in-alt ml-2"></i>الدخول إلى البوابة
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Services -->
+        <div class="mt-12">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">خدمات إضافية</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <a href="printing.html" class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white hover:bg-white/20 transition-colors">
+                    <i class="fas fa-print text-3xl mb-3 text-yellow-300"></i>
+                    <h3 class="font-bold mb-2">طباعة التذاكر</h3>
+                    <p class="text-sm text-white/80">طباعة أرقام الانتظار</p>
+                </a>
+                <a href="consultation.html" class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white hover:bg-white/20 transition-colors">
+                    <i class="fas fa-comments text-3xl mb-3 text-green-300"></i>
+                    <h3 class="font-bold mb-2">الاستشارات</h3>
+                    <p class="text-sm text-white/80">استشارات طبية أونلاين</p>
+                </a>
+                <a href="about.html" class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white hover:bg-white/20 transition-colors">
+                    <i class="fas fa-info-circle text-3xl mb-3 text-blue-300"></i>
+                    <h3 class="font-bold mb-2">عن النظام</h3>
+                    <p class="text-sm text-white/80">معلومات عن البرنامج</p>
+                </a>
+                <button onclick="showQRCode()" class="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center text-white hover:bg-white/20 transition-colors">
+                    <i class="fas fa-qrcode text-3xl mb-3 text-purple-300"></i>
+                    <h3 class="font-bold mb-2">QR Code</h3>
+                    <p class="text-sm text-white/80">الدخول السريع</p>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md mx-4">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">الدخول السريع</h3>
+                <div class="bg-gray-100 p-4 rounded-lg mb-4">
+                    <div class="w-48 h-48 bg-white mx-auto flex items-center justify-center border-2 border-dashed border-gray-300">
+                        <i class="fas fa-qrcode text-6xl text-gray-400"></i>
+                    </div>
+                </div>
+                <p class="text-gray-600 mb-4">امسح رمز الاستجابة السريعة للدخول إلى صفحة العميل</p>
+                <button onclick="hideQRCode()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration - will be loaded from config.js
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Update time and date
+        function updateDateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ar-EG');
+            const dateString = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        // Load system settings
+        function loadSystemSettings() {
+            const settingsRef = ref(database, 'settings');
+            onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings && settings.centerName) {
+                    document.getElementById('centerName').textContent = settings.centerName;
+                }
+            });
+        }
+
+        // Load statistics
+        function loadStatistics() {
+            // Load clinics data
+            const clinicsRef = ref(database, 'clinics');
+            onValue(clinicsRef, (snapshot) => {
+                const clinics = snapshot.val();
+                if (clinics) {
+                    const clinicCount = Object.keys(clinics).length;
+                    const activeClinics = Object.values(clinics).filter(c => c.isActive).length;
+                    document.getElementById('activeClinics').textContent = activeClinics;
+                }
+            });
+
+            // Load screens data
+            const screensRef = ref(database, 'screens');
+            onValue(screensRef, (snapshot) => {
+                const screens = snapshot.val();
+                if (screens) {
+                    const activeScreens = Object.values(screens).filter(s => s.isActive).length;
+                    document.getElementById('activeScreens').textContent = activeScreens;
+                }
+            });
+
+            // Calculate waiting patients (this would need more complex logic in real implementation)
+            document.getElementById('totalWaiting').textContent = '25';
+            document.getElementById('avgWaitTime').textContent = '15';
+        }
+
+        // QR Code functions
+        window.showQRCode = function() {
+            document.getElementById('qrModal').classList.remove('hidden');
+            document.getElementById('qrModal').classList.add('flex');
+        };
+
+        window.hideQRCode = function() {
+            document.getElementById('qrModal').classList.add('hidden');
+            document.getElementById('qrModal').classList.remove('flex');
+        };
+
+        // Initialize
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        loadSystemSettings();
+        loadStatistics();
+
+        // Add some animation to stats
+        setTimeout(() => {
+            document.querySelectorAll('.text-2xl.font-bold').forEach(el => {
+                el.classList.add('pulse-animation');
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

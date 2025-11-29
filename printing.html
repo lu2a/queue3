@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة التذاكر - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%); }
+        .print-ticket {
+            width: 5cm;
+            height: 5cm;
+            border: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+            page-break-inside: avoid;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-ticket {
+                width: 5cm !important;
+                height: 5cm !important;
+                margin: 2px !important;
+            }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-sm border-b border-white/20 no-print">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-print text-2xl text-white ml-3"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">طباعة التذاكر</h1>
+                        <p class="text-white/80 text-sm">طباعة أرقام الانتظار</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-white font-semibold" id="currentTime"></div>
+                    <div class="text-white/80 text-sm" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 no-print">
+        <div class="max-w-4xl mx-auto">
+            <!-- Selection Form -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-cog text-pink-600 ml-3"></i>
+                    إعدادات الطباعة
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">العيادة</label>
+                        <select id="clinicSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500">
+                            <option value="">اختر العيادة</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">عدد التذاكر</label>
+                        <div class="flex space-x-2">
+                            <input type="number" id="startNumber" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500" placeholder="من" min="1" value="1">
+                            <input type="number" id="endNumber" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500" placeholder="إلى" min="1" value="20">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">مدة الانتظار التقريبية (دقيقة)</label>
+                        <input type="number" id="waitTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500" value="15" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">تاريخ الطباعة</label>
+                        <input type="date" id="printDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500">
+                    </div>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button onclick="previewTickets()" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-eye ml-2"></i>معاينة
+                    </button>
+                    <button onclick="printTickets()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-print ml-2"></i>طباعة
+                    </button>
+                    <button onclick="resetForm()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                        <i class="fas fa-refresh ml-2"></i>إعادة تعيين
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div id="previewSection" class="bg-white rounded-lg shadow-lg p-8 hidden">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-ticket-alt text-pink-600 ml-3"></i>
+                    معاينة التذاكر
+                </h3>
+                
+                <div class="mb-4">
+                    <p class="text-gray-600">سيتم طباعة <span id="ticketCount" class="font-bold">0</span> تذكرة للعيادة: <span id="selectedClinicName" class="font-bold">-</span></p>
+                </div>
+                
+                <div id="ticketsPreview" class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                    <!-- Tickets will be generated here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Print Section -->
+    <div id="printSection" class="hidden">
+        <!-- Tickets will be printed here -->
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let clinics = [];
+        let centerName = 'مركز الرعاية الصحية';
+
+        // Load clinics
+        function loadClinics() {
+            const clinicsRef = ref(database, 'clinics');
+            onValue(clinicsRef, (snapshot) => {
+                const data = snapshot.val();
+                const clinicSelect = document.getElementById('clinicSelect');
+                clinicSelect.innerHTML = '<option value="">اختر العيادة</option>';
+                
+                if (data) {
+                    clinics = Object.values(data);
+                    clinics.forEach(clinic => {
+                        const option = document.createElement('option');
+                        option.value = clinic.number;
+                        option.textContent = clinic.name;
+                        clinicSelect.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        // Load center name
+        function loadCenterName() {
+            const settingsRef = ref(database, 'settings');
+            onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings && settings.centerName) {
+                    centerName = settings.centerName;
+                }
+            });
+        }
+
+        // Set today's date
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('printDate').value = today;
+        }
+
+        // Convert number to Arabic
+        function toArabicNumber(num) {
+            const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            return num.toString().split('').map(digit => arabicNumbers[parseInt(digit)]).join('');
+        }
+
+        // Preview tickets
+        window.previewTickets = function() {
+            const clinicId = document.getElementById('clinicSelect').value;
+            const startNumber = parseInt(document.getElementById('startNumber').value);
+            const endNumber = parseInt(document.getElementById('endNumber').value);
+            
+            if (!clinicId) {
+                alert('يرجى اختيار العيادة');
+                return;
+            }
+            
+            if (!startNumber || !endNumber || startNumber > endNumber) {
+                alert('يرجى إدخال أرقام صحيحة');
+                return;
+            }
+            
+            const clinic = clinics.find(c => c.number == clinicId);
+            if (!clinic) {
+                alert('العيادة غير موجودة');
+                return;
+            }
+            
+            const previewSection = document.getElementById('previewSection');
+            const ticketsContainer = document.getElementById('ticketsPreview');
+            
+            // Update preview info
+            document.getElementById('ticketCount').textContent = endNumber - startNumber + 1;
+            document.getElementById('selectedClinicName').textContent = clinic.name;
+            
+            // Generate preview tickets
+            ticketsContainer.innerHTML = '';
+            for (let i = startNumber; i <= endNumber; i++) {
+                const ticket = createTicketPreview(i, clinic.name);
+                ticketsContainer.appendChild(ticket);
+            }
+            
+            previewSection.classList.remove('hidden');
+        };
+
+        function createTicketPreview(number, clinicName) {
+            const ticket = document.createElement('div');
+            ticket.className = 'bg-white rounded-lg border-2 border-gray-300 p-3 text-center';
+            ticket.style.width = '120px';
+            ticket.style.height = '120px';
+            
+            const waitTime = document.getElementById('waitTime').value;
+            const printDate = document.getElementById('printDate').value;
+            
+            ticket.innerHTML = `
+                <div class="text-xs text-gray-600 mb-1">${centerName}</div>
+                <div class="text-2xl font-bold text-purple-600 mb-1">${toArabicNumber(number)}</div>
+                <div class="text-xs text-gray-800 mb-1">${clinicName}</div>
+                <div class="text-xs text-gray-500">${waitTime} دقيقة</div>
+                <div class="text-xs text-gray-400">${new Date(printDate).toLocaleDateString('ar-EG')}</div>
+            `;
+            
+            return ticket;
+        }
+
+        // Print tickets
+        window.printTickets = function() {
+            const clinicId = document.getElementById('clinicSelect').value;
+            const startNumber = parseInt(document.getElementById('startNumber').value);
+            const endNumber = parseInt(document.getElementById('endNumber').value);
+            
+            if (!clinicId) {
+                alert('يرجى اختيار العيادة');
+                return;
+            }
+            
+            const clinic = clinics.find(c => c.number == clinicId);
+            if (!clinic) {
+                alert('العيادة غير موجودة');
+                return;
+            }
+            
+            const waitTime = document.getElementById('waitTime').value;
+            const printDate = document.getElementById('printDate').value;
+            
+            // Hide main content and show print section
+            document.querySelector('main').classList.add('hidden');
+            const printSection = document.getElementById('printSection');
+            printSection.classList.remove('hidden');
+            
+            // Generate print tickets
+            printSection.innerHTML = '';
+            
+            // Create A4 page container
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'bg-white p-4';
+            pageContainer.style.width = '21cm';
+            pageContainer.style.minHeight = '29.7cm';
+            pageContainer.style.display = 'flex';
+            pageContainer.style.flexWrap = 'wrap';
+            pageContainer.style.alignContent = 'flex-start';
+            
+            for (let i = startNumber; i <= endNumber; i++) {
+                const ticket = document.createElement('div');
+                ticket.className = 'print-ticket';
+                
+                ticket.innerHTML = `
+                    <div class="text-xs font-bold mb-2">${centerName}</div>
+                    <div class="text-3xl font-bold text-purple-600 mb-2">${toArabicNumber(i)}</div>
+                    <div class="text-sm font-bold mb-1">${clinic.name}</div>
+                    <div class="text-xs text-gray-600 mb-1">الوقت المتوقع: ${waitTime} دقيقة</div>
+                    <div class="text-xs text-gray-400">${new Date(printDate).toLocaleDateString('ar-EG')}</div>
+                `;
+                
+                pageContainer.appendChild(ticket);
+            }
+            
+            printSection.appendChild(pageContainer);
+            
+            // Print
+            window.print();
+            
+            // Return to normal view after printing
+            setTimeout(() => {
+                document.querySelector('main').classList.remove('hidden');
+                printSection.classList.add('hidden');
+                printSection.innerHTML = '';
+            }, 1000);
+        };
+
+        // Reset form
+        window.resetForm = function() {
+            document.getElementById('clinicSelect').value = '';
+            document.getElementById('startNumber').value = '1';
+            document.getElementById('endNumber').value = '20';
+            document.getElementById('waitTime').value = '15';
+            setTodayDate();
+            document.getElementById('previewSection').classList.add('hidden');
+        };
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-EG');
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Initialize
+        loadClinics();
+        loadCenterName();
+        setTodayDate();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عن النظام - نظام إدارة الانتظار</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin: 0 auto 1rem;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-2xl text-white ml-3"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">عن النظام</h1>
+                        <p class="text-white/80 text-sm">معلومات عن البرنامج</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-white font-semibold" id="currentTime"></div>
+                    <div class="text-white/80 text-sm" id="currentDate"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- System Information -->
+        <div class="max-w-4xl mx-auto mb-12">
+            <div class="bg-white rounded-lg shadow-lg p-8 text-center card-hover">
+                <i class="fas fa-hospital text-6xl text-blue-600 mb-6"></i>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">نظام إدارة الانتظار الذكي</h2>
+                <p class="text-lg text-gray-600 mb-6">
+                    نظام متكامل لإدارة طوابير الانتظار في المراكز الطبية والمستشفيات، يوفر تجربة مريحة للمرضى وكفاءة عالية للطاقم الطبي
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">v2.1.0</div>
+                        <div class="text-gray-600">الإصدار الحالي</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2">2024</div>
+                        <div class="text-gray-600">سنة الإصدار</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-600 mb-2">10+</div>
+                        <div class="text-gray-600">وحدة نظام</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="max-w-6xl mx-auto mb-12">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">مميزات النظام</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">شاشات عرض متعددة</h3>
+                    <p class="text-gray-600">إمكانية عرض الأرقام على شاشات متعددة مع محتوى تسويقي وتوعوي</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">متابعة من الهاتف</h3>
+                    <p class="text-gray-600">متابعة رقمك في الانتظار من خلال هاتفك المحمول</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">حجز المواعيد</h3>
+                    <p class="text-gray-600">حجز المواعيد مسبقاً لتقليل وقت الانتظار</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">استشارات طبية</h3>
+                    <p class="text-gray-600">استشارات طبية أونلاين مع الأطباء المتخصصين</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">تقارير وإحصائيات</h3>
+                    <p class="text-gray-600">تقارير مفصلة عن أداء العيادات ووقت الانتظار</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-lg p-6 text-center card-hover">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">بوابة الأطباء</h3>
+                    <p class="text-gray-600">نظام متكامل لإدارة الأطباء وجداولهم</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Information -->
+        <div class="max-w-4xl mx-auto mb-12">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-cogs text-blue-600 ml-3"></i>
+                    المعلومات التقنية
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">تقنيات المستخدمة</h3>
+                        <ul class="space-y-2 text-gray-600">
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                HTML5, CSS3, JavaScript
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                Tailwind CSS للتصميم
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                Firebase للبيانات والمصادقة
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                Responsive Design
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                Progressive Web App
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">التوافق</h3>
+                        <ul class="space-y-2 text-gray-600">
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                متصفح Chrome
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                متصفح Firefox
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                متصفح Safari
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                متصفح Edge
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check text-green-600 ml-2"></i>
+                                الأجهزة الذكية
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-envelope text-blue-600 ml-3"></i>
+                    معلومات التواصل
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-phone text-2xl text-blue-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-2">الدعم الفني</h3>
+                        <p class="text-gray-600">0123456789</p>
+                        <p class="text-gray-600">من 9 ص إلى 5 م</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-envelope text-2xl text-green-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-2">البريد الإلكتروني</h3>
+                        <p class="text-gray-600">support@healthsystem.com</p>
+                        <p class="text-gray-600">24/7</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-map-marker-alt text-2xl text-purple-600"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-2">العنوان</h3>
+                        <p class="text-gray-600">شارع الصحة - المدينة</p>
+                        <p class="text-gray-600">الرمز البريدي: 12345</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white/10 backdrop-blur-sm border-t border-white/20 mt-12">
+        <div class="container mx-auto px-4 py-6">
+            <div class="text-center">
+                <p class="text-white/80">&copy; 2024 نظام إدارة الانتظار الذكي. جميع الحقوق محفوظة.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Load system settings
+        function loadSystemSettings() {
+            const settingsRef = ref(database, 'settings');
+            onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings && settings.centerName) {
+                    // Update center name in about page if needed
+                }
+            });
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-EG');
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Initialize
+        loadSystemSettings();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>
