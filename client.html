@@ -295,26 +295,29 @@ const firebaseConfig = {
             return card;
         }
 
-        function selectClinic(clinic) {
-            selectedClinicId = clinic.number;
-            yourNumber = Math.max(0, (clinic.currentNumber || 0) + Math.floor(Math.random() * 5) + 1);
-            
-            document.getElementById('queueSection').classList.remove('hidden');
-            document.getElementById('yourNumber').textContent = yourNumber;
-            
-            updateQueueDisplay(clinic);
-            
-            // Listen for updates
-            const clinicRef = ref(database, `clinics/${selectedClinicId}`);
-            onValue(clinicRef, (snapshot) => {
-                const updatedClinic = snapshot.val();
-                if (updatedClinic) {
-                    updateQueueDisplay(updatedClinic);
-                }
-            });
-            
-            showNotification(`تم اختيار ${clinic.name} - رقمك هو ${yourNumber}`);
-        }
+
+        
+function selectClinic(clinic) {
+        selectedClinicId = clinic.number;
+        // Fix: Use a simple calculated number instead of a random number for better demo realism.
+        yourNumber = Math.max(1, (clinic.currentNumber || 0) + 5); 
+        
+        document.getElementById('queueSection').classList.remove('hidden');
+        document.getElementById('yourNumber').textContent = yourNumber;
+        
+        updateQueueDisplay(clinic);
+        
+        // Listen for updates
+        const clinicRef = ref(database, `clinics/${selectedClinicId}`);
+        onValue(clinicRef, (snapshot) => {
+            const updatedClinic = snapshot.val();
+            if (updatedClinic) {
+                updateQueueDisplay(updatedClinic);
+            }
+        });
+        
+        showNotification(`تم اختيار ${clinic.name} - رقمك هو ${yourNumber}`);
+    }
 
         function updateQueueDisplay(clinic) {
             currentClinicNumber = clinic.currentNumber || 0;
