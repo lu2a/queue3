@@ -62,7 +62,6 @@
     </style>
 </head>
 <body class="gradient-bg text-white">
-    <!-- Login Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-gray-800">
             <div class="text-center mb-6">
@@ -93,7 +92,6 @@
         </div>
     </div>
 
-    <!-- Notification Bar -->
     <div id="notificationBar" class="notification-bar fixed top-0 left-0 right-0 bg-yellow-500 text-black py-3 px-6 z-40">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -104,7 +102,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="bg-black/20 backdrop-blur-sm border-b border-white/20">
         <div class="px-6 py-4">
             <div class="flex items-center justify-between">
@@ -139,9 +136,7 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex h-screen">
-        <!-- Video Player Section (Left) -->
         <div class="w-4/5 p-6">
             <div class="video-player rounded-lg overflow-hidden mb-4">
                 <video id="mainVideo" class="w-full h-full object-cover" controls>
@@ -150,7 +145,6 @@
                 </video>
             </div>
             
-            <!-- Doctor Images Carousel -->
             <div class="bg-black/20 rounded-lg p-6">
                 <h3 class="text-lg font-bold mb-4 text-center">الأطباء المتخصصون</h3>
                 <div class="flex justify-center">
@@ -163,9 +157,7 @@
             </div>
         </div>
 
-        <!-- Queue Display Section (Right) -->
         <div class="w-1/5 p-6 bg-black/10">
-            <!-- QR Code -->
             <div class="bg-white rounded-lg p-4 mb-6 text-center">
                 <div class="w-32 h-32 bg-gray-200 mx-auto mb-3 flex items-center justify-center">
                     <i class="fas fa-qrcode text-6xl text-gray-400"></i>
@@ -174,14 +166,11 @@
                 <p class="text-gray-600 text-xs">صفحة العميل</p>
             </div>
 
-            <!-- Clinics Queue -->
             <div class="space-y-4" id="clinicsContainer">
-                <!-- Clinics will be loaded here -->
-            </div>
+                </div>
         </div>
     </main>
 
-    <!-- News Ticker -->
     <footer class="fixed bottom-0 left-0 right-0 bg-black/30 backdrop-blur-sm border-t border-white/20">
         <div class="overflow-hidden">
             <div id="newsTicker" class="news-ticker py-3 px-6 text-yellow-300 font-bold">
@@ -190,10 +179,8 @@
         </div>
     </footer>
 
-    <!-- Audio Element -->
     <audio id="audioPlayer" preload="auto"></audio>
 
-    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -219,6 +206,10 @@ const firebaseConfig = {
         let currentZoom = 1;
         let doctorIndex = 0;
         let videoIndex = 0;
+        let audioPath = './audio'; // Default path
+        let speechRate = 1; // Default rate
+        let isScreenLoggedIn = false;
+
 
         // Mock data
         const doctors = [
@@ -228,10 +219,11 @@ const firebaseConfig = {
             { name: 'د. سارة أحمد', specialty: 'استشارية نساء وتوليد', image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"%3E%3Ccircle cx="100" cy="100" r="80" fill="%23f5576c"/%3E%3Ctext x="100" y="110" text-anchor="middle" fill="white" font-size="60" font-family="Arial"%3Eس%3C/text%3E%3C/svg%3E' }
         ];
 
+        // Mock video sources (needs actual video files in /media)
         const videos = [
-            { title: 'فيديو توعية 1', src: '' },
-            { title: 'فيديو توعية 2', src: '' },
-            { title: 'فيديو توعية 3', src: '' }
+            { title: 'فيديو توعية 1', src: './media/video1.mp4' }, 
+            { title: 'فيديو توعية 2', src: './media/video2.mp4' },
+            { title: 'فيديو توعية 3', src: './media/video3.mp4' }
         ];
 
         // Login functionality
@@ -246,6 +238,7 @@ const firebaseConfig = {
                 const screen = snapshot.val();
                 if (screen && screen.password === password) {
                     currentScreenId = screenNumber;
+                    isScreenLoggedIn = true;
                     document.getElementById('loginModal').style.display = 'none';
                     document.getElementById('screenTitle').textContent = `شاشة العرض رقم ${screenNumber}`;
                     initializeDisplay();
@@ -261,12 +254,12 @@ const firebaseConfig = {
             loadSystemSettings();
             loadClinics();
             startDoctorCarousel();
-            startVideoPlayer();
+            listenForCalls(); // Start listening for calls
             updateDateTime();
             setInterval(updateDateTime, 1000);
         }
 
-        // Load system settings
+        // Load system settings (Updated)
         function loadSystemSettings() {
             const settingsRef = ref(database, 'settings');
             onValue(settingsRef, (snapshot) => {
@@ -274,7 +267,10 @@ const firebaseConfig = {
                 if (settings) {
                     document.getElementById('centerName').textContent = settings.centerName || 'مركز الرعاية الصحية';
                     document.getElementById('newsTicker').textContent = settings.newsTicker || 'أهلاً وسهلاً بكم في مركز الرعاية الصحية';
+                    audioPath = settings.audioPath || './audio';
+                    speechRate = settings.speechRate || 1;
                 }
+                startVideoPlayer(); // Start video player after settings loaded
             });
         }
 
@@ -339,15 +335,25 @@ const firebaseConfig = {
             return card;
         }
 
-        // Listen for calls and notifications
+        // Listen for calls and notifications (Updated)
         function listenForCalls() {
             const callsRef = ref(database, 'calls');
             onValue(callsRef, (snapshot) => {
-                const call = snapshot.val();
-                if (call && call.screenId == currentScreenId) {
-                    showNotification(call.message);
-                    playCallSound(call.number, call.clinicId);
-                    highlightClinic(call.clinicId);
+                const calls = snapshot.val();
+                if (calls) {
+                    const latestCallId = Object.keys(calls).pop();
+                    const latestCall = calls[latestCallId];
+                    
+                    // Check if the call is recent (e.g., within the last 5 seconds)
+                    if (new Date(latestCall.timestamp).getTime() > Date.now() - 5000) { 
+                        
+                        // NOTE: Proper implementation should check if clinicId in call is mapped to this screenId.
+                        // Assuming it is for now, as the control panel does not send screenId.
+                        
+                        showNotification(latestCall.message || `نداء للعميل رقم ${latestCall.number} في عيادة ${latestCall.clinicName}`);
+                        playCallSound(latestCall.number, latestCall.clinicId, latestCall.clinicName);
+                        highlightClinic(latestCall.clinicId);
+                    }
                 }
             });
         }
@@ -366,18 +372,52 @@ const firebaseConfig = {
             }, 5000);
         }
 
-        function playCallSound(number, clinicId) {
-            // This would play the actual audio files in real implementation
+        // Updated playCallSound function
+        async function playCallSound(number, clinicId, clinicName) {
             const audio = document.getElementById('audioPlayer');
+            if (!audio) return;
             
-            // Mock audio playing with TTS fallback
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(`على العميل رقم ${number} التوجه إلى العيادة`);
-                utterance.lang = 'ar-SA';
-                utterance.rate = 0.8;
-                speechSynthesis.speak(utterance);
-            }
+            // Fallback to TTS
+            const fallbackToTTS = (message) => {
+                 if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.lang = 'ar-SA';
+                    utterance.rate = speechRate;
+                    speechSynthesis.speak(utterance);
+                }
+            };
+            
+            const numberAudioPath = `${audioPath}/${number}.mp3`;
+            const clinicAudioPath = `${audioPath}/clinic${clinicId}.mp3`;
+            const dingAudioPath = `${audioPath}/ding.mp3`;
+            
+            const numberMessage = `على العميل رقم ${number}`;
+            const clinicMessage = `التوجه إلى ${clinicName}`;
+
+            const playNext = (path, fallbackMessage) => new Promise((resolve) => {
+                if (!path) return resolve();
+                
+                audio.src = path;
+                audio.onended = resolve;
+                audio.onerror = () => {
+                     console.error(`Error loading audio: ${path}. Falling back to TTS.`);
+                     if (fallbackMessage) fallbackToTTS(fallbackMessage);
+                     resolve();
+                };
+                
+                audio.play().catch(e => {
+                    console.error(`Playback failed for ${path}:`, e);
+                    if (fallbackMessage) fallbackToTTS(fallbackMessage);
+                    resolve();
+                });
+            });
+
+            // Sequence playback: Ding -> Number -> Clinic Name
+            await playNext(dingAudioPath, ''); 
+            await playNext(numberAudioPath, numberMessage);
+            await playNext(clinicAudioPath, clinicMessage);
         }
+
 
         function highlightClinic(clinicId) {
             const clinicCard = document.getElementById(`clinic-${clinicId}`);
@@ -405,15 +445,30 @@ const firebaseConfig = {
             document.getElementById('doctorSpecialty').textContent = doctor.specialty;
         }
 
-        // Video player
+        // Video player (Updated)
         function startVideoPlayer() {
             const video = document.getElementById('mainVideo');
+            if (!video || videos.length === 0) return;
             
-            // In real implementation, this would load actual videos
-            video.poster = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"%3E%3Crect width="1920" height="1080" fill="%23000"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%23333" font-size="48" font-family="Arial"%3Eفيديوهات التوعية%3C/text%3E%3C/svg%3E';
-            
-            // Auto-play functionality would be implemented here
+            // Set up video looping and cycling
+            video.src = videos[videoIndex].src;
+            video.load(); 
+
+            video.onended = () => {
+                videoIndex = (videoIndex + 1) % videos.length;
+                video.src = videos[videoIndex].src;
+                video.load();
+                video.play().catch(e => console.error("Video auto-play failed: ", e));
+            };
+
+            // Attempt to play the first video
+            video.play().catch(e => {
+                console.error("Initial video play failed. User interaction might be required.", e);
+                // Display a poster if autoplay is blocked
+                video.poster = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"%3E%3Crect width="1920" height="1080" fill="%23000"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%23FFF" font-size="48" font-family="Cairo"%3Eاضغط لتشغيل محتوى التوعية%3C/text%3E%3C/svg%3E';
+            });
         }
+
 
         // Update date and time
         function updateDateTime() {
@@ -437,13 +492,13 @@ const firebaseConfig = {
         };
 
         window.zoomIn = function() {
-            currentZoom = Math.min(currentZoom + 0.025, 0.5);
+            currentZoom = Math.min(currentZoom + 0.025, 2); // Max zoom is 2.0
             document.body.style.transform = `scale(${currentZoom})`;
             document.body.style.transformOrigin = 'top right';
         };
 
         window.zoomOut = function() {
-            currentZoom = Math.max(currentZoom - 0.025, 0.125);
+            currentZoom = Math.max(currentZoom - 0.025, 1); // Min zoom is 1.0
             document.body.style.transform = `scale(${currentZoom})`;
             document.body.style.transformOrigin = 'top right';
         };
@@ -454,6 +509,7 @@ const firebaseConfig = {
                     updateScreenActiveStatus(currentScreenId, false);
                 }
                 currentScreenId = null;
+                isScreenLoggedIn = false;
                 document.getElementById('loginModal').style.display = 'flex';
                 document.body.style.transform = 'scale(1)';
             }
@@ -465,20 +521,8 @@ const firebaseConfig = {
         }
 
         // Initialize listeners
-        listenForCalls();
-
-        // Handle page visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Page is hidden, pause updates
-                console.log('Screen paused');
-            } else {
-                // Page is visible, resume updates
-                console.log('Screen resumed');
-                loadClinics();
-            }
-        });
-
+        // Note: The logic for listening for calls starts after successful login in initializeDisplay()
+        
         // Prevent context menu and other interactions
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         document.addEventListener('keydown', (e) => {
