@@ -44,7 +44,6 @@
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
-    <!-- Login Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <div class="text-center mb-6">
@@ -70,7 +69,6 @@
         </div>
     </div>
 
-    <!-- Notification -->
     <div id="notification" class="notification bg-white rounded-lg shadow-lg p-4">
         <div class="flex items-center">
             <i class="fas fa-bullhorn text-green-600 text-xl ml-3"></i>
@@ -78,7 +76,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
@@ -102,16 +99,13 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="container mx-auto px-4 py-8" id="mainContent" style="display: none;">
-        <!-- Current Number Display -->
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-8 mb-8 text-center">
             <h2 class="text-2xl font-bold text-white mb-4">الرقم الحالي</h2>
             <div class="current-number text-yellow-300 pulse-animation" id="currentNumber">0</div>
             <div class="text-white/80 text-lg mt-2" id="lastCalledTime">آخر نداء: --:--</div>
         </div>
 
-        <!-- Control Buttons -->
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
             <button onclick="nextClient()" class="control-button bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-bold">
                 <i class="fas fa-arrow-right text-2xl mb-2 block"></i>
@@ -139,9 +133,7 @@
             </button>
         </div>
 
-        <!-- Special Actions -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Call by Name -->
             <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
                 <h3 class="text-lg font-bold text-white mb-4 flex items-center">
                     <i class="fas fa-user text-yellow-300 ml-3"></i>
@@ -155,7 +147,6 @@
                 </div>
             </div>
 
-            <!-- Transfer Client -->
             <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
                 <h3 class="text-lg font-bold text-white mb-4 flex items-center">
                     <i class="fas fa-exchange-alt text-yellow-300 ml-3"></i>
@@ -172,7 +163,6 @@
                 </div>
             </div>
 
-            <!-- Doctor Alert -->
             <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
                 <h3 class="text-lg font-bold text-white mb-4 flex items-center">
                     <i class="fas fa-bell text-yellow-300 ml-3"></i>
@@ -190,7 +180,6 @@
             </div>
         </div>
 
-        <!-- Status Controls -->
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center">
                 <i class="fas fa-power-off text-yellow-300 ml-3"></i>
@@ -206,12 +195,13 @@
             </div>
         </div>
     </main>
+    
+    <audio id="audioPlayer" preload="auto"></audio>
 
-    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, set, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, set, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -234,6 +224,23 @@ const firebaseConfig = {
         let currentClinicId = null;
         let currentClinic = null;
         let isLoggedIn = false;
+        let audioPath = './audio'; // Default path (Fetched from settings)
+        let speechRate = 1; // Default rate (Fetched from settings)
+
+
+        // Function to load system settings (especially audioPath)
+        function loadSystemSettings(callback) {
+            const settingsRef = ref(database, 'settings');
+            onValue(settingsRef, (snapshot) => {
+                const settings = snapshot.val();
+                if (settings) {
+                    audioPath = settings.audioPath || './audio';
+                    speechRate = settings.speechRate || 1;
+                }
+                if (callback) callback();
+            }, { onlyOnce: true });
+        }
+
 
         // Load clinics for login
         function loadClinicsForLogin() {
@@ -241,7 +248,11 @@ const firebaseConfig = {
             onValue(clinicsRef, (snapshot) => {
                 const clinics = snapshot.val();
                 const clinicSelect = document.getElementById('clinicSelect');
+                const targetSelect = document.getElementById('targetClinic');
+                const doctorSelect = document.getElementById('targetDoctorClinic');
                 clinicSelect.innerHTML = '<option value="">اختر العيادة</option>';
+                targetSelect.innerHTML = '<option value="">اختر العيادة المستهدفة</option>';
+                doctorSelect.innerHTML = '<option value="">اختر عيادة الطبيب</option>';
                 
                 if (clinics) {
                     Object.values(clinics).forEach(clinic => {
@@ -249,6 +260,17 @@ const firebaseConfig = {
                         option.value = clinic.number;
                         option.textContent = clinic.name;
                         clinicSelect.appendChild(option);
+
+                        // Populate target clinics lists as well
+                        const optionT = document.createElement('option');
+                        optionT.value = clinic.number;
+                        optionT.textContent = clinic.name;
+                        targetSelect.appendChild(optionT);
+
+                        const optionD = document.createElement('option');
+                        optionD.value = clinic.number;
+                        optionD.textContent = clinic.name;
+                        doctorSelect.appendChild(optionD);
                     });
                 }
             });
@@ -281,14 +303,15 @@ const firebaseConfig = {
             currentClinicId = clinicId;
             isLoggedIn = true;
             
-            // Load clinic data
-            const clinicRef = ref(database, `clinics/${clinicId}`);
-            onValue(clinicRef, (snapshot) => {
-                currentClinic = snapshot.val();
-                if (currentClinic) {
-                    updateDisplay();
-                    loadTargetClinics();
-                }
+            // Load system settings first, then clinic data
+            loadSystemSettings(() => {
+                const clinicRef = ref(database, `clinics/${clinicId}`);
+                onValue(clinicRef, (snapshot) => {
+                    currentClinic = snapshot.val();
+                    if (currentClinic) {
+                        updateDisplay();
+                    }
+                });
             });
             
             document.getElementById('loginModal').style.display = 'none';
@@ -314,34 +337,6 @@ const firebaseConfig = {
                 document.getElementById('pauseBtn').style.display = 'none';
                 document.getElementById('resumeBtn').style.display = 'inline-block';
             }
-        }
-
-        function loadTargetClinics() {
-            const targetSelect = document.getElementById('targetClinic');
-            const doctorSelect = document.getElementById('targetDoctorClinic');
-            
-            targetSelect.innerHTML = '<option value="">اختر العيادة المستهدفة</option>';
-            doctorSelect.innerHTML = '<option value="">اختر عيادة الطبيب</option>';
-            
-            const clinicsRef = ref(database, 'clinics');
-            onValue(clinicsRef, (snapshot) => {
-                const clinics = snapshot.val();
-                if (clinics) {
-                    Object.values(clinics).forEach(clinic => {
-                        if (clinic.number != currentClinicId) {
-                            const option1 = document.createElement('option');
-                            option1.value = clinic.number;
-                            option1.textContent = clinic.name;
-                            targetSelect.appendChild(option1);
-                            
-                            const option2 = document.createElement('option');
-                            option2.value = clinic.number;
-                            option2.textContent = clinic.name;
-                            doctorSelect.appendChild(option2);
-                        }
-                    });
-                }
-            }, { onlyOnce: true });
         }
 
         // Control functions
@@ -403,6 +398,7 @@ const firebaseConfig = {
                     name: name,
                     clinicId: currentClinicId,
                     clinicName: currentClinic.name,
+                    message: `نداء للعميل ${name} للتوجه إلى ${currentClinic.name}`,
                     timestamp: new Date().toISOString()
                 };
                 
@@ -418,23 +414,30 @@ const firebaseConfig = {
             if (!isLoggedIn) return;
             
             const number = document.getElementById('transferNumber').value;
-            const targetClinic = document.getElementById('targetClinic').value;
+            const targetClinicId = document.getElementById('targetClinic').value;
             
-            if (number && targetClinic) {
-                const transferData = {
-                    type: 'transfer',
-                    number: parseInt(number),
-                    fromClinic: currentClinicId,
-                    toClinic: targetClinic,
-                    timestamp: new Date().toISOString()
-                };
-                
-                const transfersRef = ref(database, 'transfers');
-                push(transfersRef, transferData);
-                
-                showNotification(`تم تحويل العميل رقم ${number} إلى العيادة المستهدفة`);
-                document.getElementById('transferNumber').value = '';
-                document.getElementById('targetClinic').value = '';
+            if (number && targetClinicId) {
+                // Fetch target clinic name for message
+                get(ref(database, `clinics/${targetClinicId}`)).then(snapshot => {
+                    const targetClinic = snapshot.val();
+                    const targetClinicName = targetClinic ? targetClinic.name : 'عيادة مجهولة';
+
+                    const transferData = {
+                        type: 'transfer',
+                        number: parseInt(number),
+                        fromClinic: currentClinicId,
+                        toClinic: targetClinicId,
+                        message: `تحويل للعميل رقم ${number} من ${currentClinic.name} إلى ${targetClinicName}`,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    const transfersRef = ref(database, 'transfers');
+                    push(transfersRef, transferData);
+                    
+                    showNotification(`تم تحويل العميل رقم ${number} إلى ${targetClinicName}`);
+                    document.getElementById('transferNumber').value = '';
+                    document.getElementById('targetClinic').value = '';
+                });
             }
         };
 
@@ -469,6 +472,7 @@ const firebaseConfig = {
                 type: 'emergency',
                 clinicId: currentClinicId,
                 clinicName: currentClinic.name,
+                message: `نداء طوارئ من عيادة ${currentClinic.name}`,
                 timestamp: new Date().toISOString()
             };
             
@@ -511,25 +515,64 @@ const firebaseConfig = {
                 number: number,
                 clinicId: currentClinicId,
                 clinicName: currentClinic.name,
+                message: `على العميل رقم ${number} التوجه إلى ${currentClinic.name}`,
                 timestamp: new Date().toISOString()
             };
             
             const callsRef = ref(database, 'calls');
             push(callsRef, callData);
             
-            // Play sound or TTS
+            // Play sound
             playCallSound(number);
         }
 
-        function playCallSound(number) {
-            // Use TTS as fallback
-            if ('speechSynthesis' in window) {
-                const message = `على العميل رقم ${number} التوجه إلى ${currentClinic.name}`;
-                const utterance = new SpeechSynthesisUtterance(message);
-                utterance.lang = 'ar-SA';
-                utterance.rate = 0.8;
-                speechSynthesis.speak(utterance);
+        // Updated playCallSound function
+        async function playCallSound(number) {
+            const audio = document.getElementById('audioPlayer');
+            if (!audio) {
+                console.error('Audio player not found.');
+                return;
             }
+
+            const numberAudioPath = `${audioPath}/${number}.mp3`;
+            const clinicAudioPath = `${audioPath}/clinic${currentClinicId}.mp3`;
+            const dingAudioPath = `${audioPath}/ding.mp3`;
+
+            // Fallback to TTS
+            const fallbackToTTS = (message) => {
+                 if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(message);
+                    utterance.lang = 'ar-SA';
+                    utterance.rate = speechRate;
+                    speechSynthesis.speak(utterance);
+                }
+            };
+            
+            const numberMessage = `على العميل رقم ${number}`;
+            const clinicMessage = `التوجه إلى ${currentClinic.name}`;
+
+            const playNext = (path, fallbackMessage) => new Promise((resolve) => {
+                if (!path) return resolve();
+                
+                audio.src = path;
+                audio.onended = resolve;
+                audio.onerror = () => {
+                     console.error(`Error loading audio: ${path}. Falling back to TTS.`);
+                     if (fallbackMessage) fallbackToTTS(fallbackMessage);
+                     resolve();
+                };
+                
+                audio.play().catch(e => {
+                    console.error(`Playback failed for ${path}:`, e);
+                    if (fallbackMessage) fallbackToTTS(fallbackMessage);
+                    resolve();
+                });
+            });
+
+            // Sequence playback: Ding -> Number -> Clinic Name
+            await playNext(dingAudioPath, ''); 
+            await playNext(numberAudioPath, numberMessage);
+            await playNext(clinicAudioPath, clinicMessage);
         }
 
         function showNotification(message) {
