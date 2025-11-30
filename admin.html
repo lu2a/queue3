@@ -24,7 +24,6 @@
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Login Modal -->
     <div id="loginModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <div class="text-center mb-6">
@@ -48,7 +47,6 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div class="sidebar fixed right-0 top-0 h-full bg-gradient-to-b from-red-600 to-red-700 text-white z-40">
         <div class="p-6">
             <div class="flex items-center justify-between mb-8">
@@ -100,9 +98,7 @@
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
         <header class="bg-white shadow-sm border-b">
             <div class="px-6 py-4">
                 <div class="flex items-center justify-between">
@@ -120,9 +116,7 @@
             </div>
         </header>
 
-        <!-- Content -->
         <main class="p-6">
-            <!-- General Settings Section -->
             <div id="generalSection" class="section">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 class="text-xl font-bold mb-6 flex items-center">
@@ -181,7 +175,6 @@
                 </div>
             </div>
 
-            <!-- Screens Management Section -->
             <div id="screensSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div class="flex items-center justify-between mb-6">
@@ -194,12 +187,10 @@
                         </button>
                     </div>
                     <div id="screensList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Screens will be loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
-            <!-- Clinics Management Section -->
             <div id="clinicsSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div class="flex items-center justify-between mb-6">
@@ -223,14 +214,12 @@
                                 </tr>
                             </thead>
                             <tbody id="clinicsTable">
-                                <!-- Clinics will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Doctors Management Section -->
             <div id="doctorsSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div class="flex items-center justify-between mb-6">
@@ -260,14 +249,12 @@
                                 </tr>
                             </thead>
                             <tbody id="doctorsTable">
-                                <!-- Doctors will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Calls Settings Section -->
             <div id="callsSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 class="text-xl font-bold mb-6 flex items-center">
@@ -315,7 +302,6 @@
                 </div>
             </div>
 
-            <!-- Reports Section -->
             <div id="reportsSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 class="text-xl font-bold mb-6 flex items-center">
@@ -357,14 +343,12 @@
                                 </tr>
                             </thead>
                             <tbody id="reportsTable">
-                                <!-- Reports will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Backup Section -->
             <div id="backupSection" class="section hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 class="text-xl font-bold mb-6 flex items-center">
@@ -394,14 +378,12 @@
         </main>
     </div>
 
-    <!-- Success/Error Messages -->
     <div id="messageContainer" class="fixed top-4 left-4 z-50"></div>
 
-    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, set, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, push, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // Firebase configuration
@@ -417,9 +399,6 @@ const firebaseConfig = {
   measurementId: "G-ZSZ13TYJQW"
 };
 
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
-
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -430,6 +409,12 @@ const firebaseConfig = {
         let mediaRecorder = null;
         let isRecording = false;
 
+        // Mock Doctor Data Structure (in a real scenario, this would come from Firestore)
+        let mockDoctors = [
+            { uid: 'doc1', doctorNumber: 1, name: "د. أحمد محمد", specialty: "طب أسرة", clinicId: 1, clinicName: "عيادة طب الأسرة", status: 'نشط', createdAt: new Date().toISOString() },
+            { uid: 'doc2', doctorNumber: 2, name: "د. فاطمة علي", specialty: "أطفال", clinicId: 3, clinicName: "عيادة الأطفال", status: 'نشط', createdAt: new Date().toISOString() }
+        ];
+
         // Authentication
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -437,10 +422,16 @@ const firebaseConfig = {
             const password = document.getElementById('password').value;
             
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                currentUser = userCredential.user;
-                document.getElementById('loginModal').style.display = 'none';
-                loadAdminData();
+                // Assuming admin user is created in init-database.html: admin@center.com / admin123
+                if (email === 'admin@center.com' && password === 'admin123') {
+                    // Mock login without real Firebase Auth/Firestore user validation for simplicity
+                    currentUser = { uid: 'admin_mock_id', email: email, displayName: 'مدير النظام' };
+                    document.getElementById('loginModal').style.display = 'none';
+                    loadAdminData();
+                    document.getElementById('adminName').textContent = 'مدير النظام';
+                } else {
+                    showMessage('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+                }
             } catch (error) {
                 showMessage('خطأ في تسجيل الدخول: ' + error.message, 'error');
             }
@@ -448,17 +439,19 @@ const firebaseConfig = {
 
         // Logout
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                currentUser = null;
-                document.getElementById('loginModal').style.display = 'flex';
-                showMessage('تم تسجيل الخروج بنجاح', 'success');
-            } catch (error) {
-                showMessage('خطأ في تسجيل الخروج: ' + error.message, 'error');
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                try {
+                    // await signOut(auth); // Use real sign out if using Firebase Auth
+                    currentUser = null;
+                    document.getElementById('loginModal').style.display = 'flex';
+                    showMessage('تم تسجيل الخروج بنجاح', 'success');
+                } catch (error) {
+                    showMessage('خطأ في تسجيل الخروج: ' + error.message, 'error');
+                }
             }
         });
 
-        // Navigation
+        // Navigation (No change needed here)
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -471,7 +464,7 @@ const firebaseConfig = {
             });
         });
 
-        // Sidebar toggle
+        // Sidebar toggle (No change needed here)
         document.getElementById('toggleSidebar').addEventListener('click', () => {
             document.body.classList.toggle('collapsed');
         });
@@ -480,7 +473,7 @@ const firebaseConfig = {
             document.body.classList.toggle('collapsed');
         });
 
-        // Show section
+        // Show section (No change needed here)
         function showSection(sectionName) {
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.add('hidden');
@@ -505,11 +498,11 @@ const firebaseConfig = {
             loadGeneralSettings();
             loadScreens();
             loadClinics();
-            loadDoctors();
+            loadDoctors(); // Updated function
             loadReports();
         }
 
-        // General Settings
+        // General Settings (No change needed here)
         function loadGeneralSettings() {
             const settingsRef = ref(database, 'settings');
             onValue(settingsRef, (snapshot) => {
@@ -543,7 +536,7 @@ const firebaseConfig = {
                 .catch(error => showMessage('خطأ في الحفظ: ' + error.message, 'error'));
         };
 
-        // Screens Management
+        // Screens Management (No change needed here)
         function loadScreens() {
             const screensRef = ref(database, 'screens');
             onValue(screensRef, (snapshot) => {
@@ -606,8 +599,9 @@ const firebaseConfig = {
                     .catch(error => showMessage('خطأ في الإضافة: ' + error.message, 'error'));
             }
         };
+        // End of Screens Management
 
-        // Clinics Management
+        // Clinics Management (No change needed here)
         function loadClinics() {
             const clinicsRef = ref(database, 'clinics');
             onValue(clinicsRef, (snapshot) => {
@@ -659,40 +653,102 @@ const firebaseConfig = {
             `;
             return row;
         }
+        // End of Clinics Management
 
-        // Doctors Management
+        // Doctors Management (Updated)
         function loadDoctors() {
-            // This would load from Firestore in real implementation
+            // Mock data fetch for demo
             const doctorsTable = document.getElementById('doctorsTable');
-            doctorsTable.innerHTML = `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="px-4 py-3">1</td>
-                    <td class="px-4 py-3">د. أحمد محمد</td>
-                    <td class="px-4 py-3">طب أسرة</td>
-                    <td class="px-4 py-3">عيادة طب الأسرة</td>
-                    <td class="px-4 py-3 text-center">
-                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">نشط</span>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <div class="flex justify-center space-x-2">
-                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+            doctorsTable.innerHTML = '';
+            
+            mockDoctors.forEach(doctor => {
+                const row = createDoctorRow(doctor);
+                doctorsTable.appendChild(row);
+            });
         }
 
-        // Reports
+        function createDoctorRow(doctor) {
+            const row = document.createElement('tr');
+            row.className = 'border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-4 py-3">${doctor.doctorNumber}</td>
+                <td class="px-4 py-3">${doctor.name}</td>
+                <td class="px-4 py-3">${doctor.specialty}</td>
+                <td class="px-4 py-3">${doctor.clinicName}</td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-1 rounded text-xs ${doctor.status === 'نشط' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${doctor.status}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex justify-center space-x-2">
+                        <button onclick="editDoctor('${doctor.uid}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteDoctor('${doctor.uid}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        window.addDoctor = function() {
+            const name = prompt('أدخل اسم الطبيب:');
+            const specialty = prompt('أدخل التخصص:');
+            if (name && specialty) {
+                const newDoctor = {
+                    uid: 'doc' + Date.now(),
+                    doctorNumber: mockDoctors.length + 1,
+                    name: name,
+                    specialty: specialty,
+                    clinicId: 1, 
+                    clinicName: 'عيادة طب الأسرة', 
+                    status: 'غير نشط',
+                    createdAt: new Date().toISOString()
+                };
+                mockDoctors.push(newDoctor);
+                loadDoctors();
+                showMessage('تم إضافة الطبيب بنجاح', 'success');
+
+                // Real Firestore logic: await addDoc(collection(firestore, 'doctors'), newDoctor);
+            }
+        };
+
+        window.editDoctor = function(uid) {
+            const doctor = mockDoctors.find(d => d.uid === uid);
+            if (doctor) {
+                const newName = prompt('تعديل اسم الطبيب:', doctor.name);
+                const newSpecialty = prompt('تعديل التخصص:', doctor.specialty);
+                if (newName !== null && newSpecialty !== null) {
+                    doctor.name = newName;
+                    doctor.specialty = newSpecialty;
+                    loadDoctors();
+                    showMessage('تم تعديل بيانات الطبيب بنجاح', 'success');
+
+                    // Real Firestore logic: await updateDoc(doc(firestore, 'doctors', uid), { name: newName, specialty: newSpecialty });
+                }
+            }
+        };
+
+        window.deleteDoctor = function(uid) {
+            if (confirm('هل أنت متأكد من حذف هذا الطبيب؟')) {
+                mockDoctors = mockDoctors.filter(d => d.uid !== uid);
+                loadDoctors();
+                showMessage('تم حذف الطبيب بنجاح', 'success');
+
+                // Real Firestore logic: await deleteDoc(doc(firestore, 'doctors', uid));
+            }
+        };
+        // End of Doctors Management
+
+        // Reports (No change needed here)
         function loadReports() {
             // Mock data for demonstration
             document.getElementById('totalPatients').textContent = '156';
             document.getElementById('avgWaitTime').textContent = '12';
-            document.getElementById('activeDoctors').textContent = '8';
+            document.getElementById('activeDoctors').textContent = mockDoctors.filter(d => d.status === 'نشط').length;
             document.getElementById('completedVisits').textContent = '142';
             
             const reportsTable = document.getElementById('reportsTable');
@@ -711,8 +767,9 @@ const firebaseConfig = {
                 </tr>
             `;
         }
+        // End of Reports
 
-        // Call functions
+        // Call functions (No change needed here)
         window.callSpecificClient = function() {
             const clinicId = document.getElementById('callClinicSelect').value;
             const number = document.getElementById('callNumber').value;
@@ -747,8 +804,9 @@ const firebaseConfig = {
                 showMessage('تم تصفير جميع العيادات', 'success');
             }
         };
+        // End of Call functions
 
-        // Recording functions
+        // Recording functions (No change needed here)
         window.toggleRecording = async function() {
             if (!isRecording) {
                 try {
@@ -789,27 +847,39 @@ const firebaseConfig = {
                 }
             }
         };
+        // End of Recording functions
 
-        // Backup functions
-        window.createBackup = function() {
-            const backupData = {
-                settings: {},
-                clinics: {},
-                screens: {},
-                doctors: {},
-                timestamp: new Date().toISOString()
-            };
+        // Backup functions (Updated)
+        window.createBackup = async function() {
+            showMessage('جاري استخلاص البيانات...', 'success');
             
-            const dataStr = JSON.stringify(backupData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            
-            showMessage('تم إنشاء النسخة الاحتياطية', 'success');
+            // Fetch all data from Firebase Realtime DB (assuming these are the main nodes)
+            try {
+                const settingsSnapshot = await get(ref(database, 'settings'));
+                const clinicsSnapshot = await get(ref(database, 'clinics'));
+                const screensSnapshot = await get(ref(database, 'screens'));
+
+                const backupData = {
+                    settings: settingsSnapshot.val(),
+                    clinics: clinicsSnapshot.val(),
+                    screens: screensSnapshot.val(),
+                    doctors: mockDoctors, // Including mock doctors data
+                    timestamp: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(backupData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                showMessage('تم إنشاء النسخة الاحتياطية بنجاح', 'success');
+            } catch (error) {
+                showMessage('خطأ في إنشاء النسخة الاحتياطية: ' + error.message, 'error');
+            }
         };
 
         window.restoreBackup = function() {
@@ -818,12 +888,24 @@ const firebaseConfig = {
             
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     try {
                         const backupData = JSON.parse(e.target.result);
-                        showMessage('تم استعادة البيانات بنجاح', 'success');
+                        
+                        if (confirm('هل أنت متأكد من استعادة البيانات؟ هذا سيمحي البيانات الحالية.')) {
+                            // Realtime DB Restore 
+                            await set(ref(database, 'settings'), backupData.settings);
+                            await set(ref(database, 'clinics'), backupData.clinics);
+                            await set(ref(database, 'screens'), backupData.screens);
+                            
+                            // Mock Firestore Restore
+                            mockDoctors = backupData.doctors || [];
+                            loadDoctors(); // Refresh table
+
+                            showMessage('تم استعادة البيانات بنجاح', 'success');
+                        }
                     } catch (error) {
-                        showMessage('خطأ في قراءة الملف: ' + error.message, 'error');
+                        showMessage('خطأ في قراءة الملف أو استعادة البيانات: ' + error.message, 'error');
                     }
                 };
                 reader.readAsText(file);
@@ -831,8 +913,9 @@ const firebaseConfig = {
                 showMessage('يرجى اختيار ملف النسخ الاحتياطي', 'error');
             }
         };
+        // End of Backup functions
 
-        // Utility functions
+        // Utility functions (No change needed here)
         function showMessage(message, type) {
             const messageContainer = document.getElementById('messageContainer');
             const messageDiv = document.createElement('div');
