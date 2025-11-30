@@ -27,7 +27,6 @@
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
-    <!-- Header -->
     <header class="bg-white/10 backdrop-blur-sm border-b border-white/20">
         <div class="container mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
@@ -46,9 +45,7 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <!-- Registration Section -->
         <div id="registrationSection" class="max-w-4xl mx-auto">
             <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
                 <div class="text-center mb-8">
@@ -57,7 +54,6 @@
                     <p class="text-gray-600">سجل بياناتك الطبية للحصول على استشارات طبية أونلاين</p>
                 </div>
 
-                <!-- Progress Steps -->
                 <div class="flex items-center justify-center mb-8">
                     <div class="flex items-center space-x-4">
                         <div class="step active flex items-center justify-center w-10 h-10 rounded-full border-2 border-purple-500 text-purple-600 font-bold">1</div>
@@ -68,9 +64,7 @@
                     </div>
                 </div>
 
-                <!-- Registration Form -->
                 <form id="registrationForm">
-                    <!-- Step 1: Personal Information -->
                     <div id="step1" class="registration-step">
                         <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
                             <i class="fas fa-user text-purple-600 ml-3"></i>
@@ -116,7 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Medical History -->
                     <div id="step2" class="registration-step hidden">
                         <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
                             <i class="fas fa-heartbeat text-purple-600 ml-3"></i>
@@ -226,7 +219,6 @@
                         </div>
                     </div>
 
-                    <!-- Step 3: Physical Information -->
                     <div id="step3" class="registration-step hidden">
                         <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
                             <i class="fas fa-ruler text-purple-600 ml-3"></i>
@@ -280,10 +272,8 @@
             </div>
         </div>
 
-        <!-- Consultations List Section -->
         <div id="consultationsSection" class="max-w-6xl mx-auto hidden">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Filters Sidebar -->
                 <div class="lg:col-span-1">
                     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                         <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -328,7 +318,6 @@
                         </div>
                     </div>
                     
-                    <!-- Quick Stats -->
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">إحصائيات سريعة</h3>
                         <div class="space-y-3">
@@ -352,7 +341,6 @@
                     </div>
                 </div>
 
-                <!-- Consultations List -->
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <div class="flex items-center justify-between mb-6">
@@ -365,8 +353,7 @@
                         </div>
                         
                         <div id="consultationsList" class="space-y-4">
-                            <!-- Consultations will be loaded here -->
-                        </div>
+                            </div>
                         
                         <div id="noConsultations" class="text-center py-12 hidden">
                             <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
@@ -378,7 +365,6 @@
             </div>
         </div>
 
-        <!-- Consultation Details Modal -->
         <div id="consultationModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
             <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
                 <div class="p-6 border-b border-gray-200">
@@ -392,17 +378,15 @@
                 
                 <div class="p-6">
                     <div id="consultationDetails">
-                        <!-- Consultation details will be loaded here -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // Firebase configuration
  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -475,7 +459,9 @@ const firebaseConfig = {
                 const medications = document.getElementById('currentMedications').value;
                 
                 const additionalInfo = document.getElementById('additionalInfo');
-                if (surgeries === 'yes' || allergies === 'yes' || medications === 'yes') {
+                const shouldShow = surgeries === 'yes' || allergies === 'yes' || medications === 'yes';
+                
+                if (shouldShow) {
                     additionalInfo.classList.remove('hidden');
                 } else {
                     additionalInfo.classList.add('hidden');
@@ -511,16 +497,33 @@ const firebaseConfig = {
                 pulse: document.getElementById('pulse').value,
                 currentSymptoms: document.getElementById('currentSymptoms').value,
                 timestamp: new Date().toISOString(),
-                status: 'active'
+                status: 'active',
+                consultationStatus: 'new_request'
             };
             
             try {
-                // Save patient data
+                // Save patient data to 'patients' node (unique ID from push)
                 const patientsRef = ref(database, 'patients');
-                await push(patientsRef, patientData);
+                const newPatient = await push(patientsRef, patientData);
+                
+                // Also push a consultation request
+                const consultationRef = ref(database, 'consultations');
+                await push(consultationRef, {
+                    patientId: newPatient.key,
+                    patientName: patientData.fullName,
+                    nationalId: patientData.nationalId,
+                    phoneNumber: patientData.phoneNumber,
+                    email: patientData.email,
+                    specialty: 'family', // Default specialty (can be a choice field)
+                    complaint: 'استشارة طبية', // Default complaint
+                    symptoms: patientData.currentSymptoms,
+                    priority: 'normal', // Default priority (can be a choice field)
+                    status: 'open',
+                    timestamp: new Date().toISOString()
+                });
                 
                 // Show success message and switch to consultations
-                alert('تم التسجيل بنجاح! يمكنك الآن إرسال استشارتك.');
+                alert('تم التسجيل وإرسال طلب الاستشارة بنجاح! يمكنك الآن متابعة الرد.');
                 showConsultationsSection();
                 
             } catch (error) {
@@ -534,130 +537,26 @@ const firebaseConfig = {
             loadConsultations();
         }
 
+        // Updated loadConsultations to fetch from Firebase
         function loadConsultations() {
-            // Mock consultations data
-            consultations = [
-                {
-                    id: 1,
-                    patientName: 'أحمد خالد',
-                    nationalId: '12345678901234',
-                    phoneNumber: '01234567890',
-                    email: 'ahmed@example.com',
-                    specialty: 'family',
-                    complaint: 'صداع مستمر',
-                    symptoms: 'أعاني من صداع مستمر منذ أسبوع مع دوخة أحياناً',
-                    priority: 'urgent',
-                    status: 'open',
-                    weight: '75',
-                    height: '170',
-                    bloodPressure: '120/80',
-                    temperature: '37.2',
-                    pulse: '78',
-                    timestamp: new Date().toISOString()
-                },
-                {
-                    id: 2,
-                    patientName: 'فاطمة علي',
-                    nationalId: '98765432109876',
-                    phoneNumber: '01123456789',
-                    email: 'fatima@example.com',
-                    specialty: 'gynecology',
-                    complaint: 'استشارة نسائية',
-                    symptoms: 'أود استشارة حول بعض الأعراض التي أعاني منها',
-                    priority: 'normal',
-                    status: 'open',
-                    weight: '65',
-                    height: '160',
-                    bloodPressure: '110/70',
-                    temperature: '36.8',
-                    pulse: '72',
-                    timestamp: new Date().toISOString()
+            const consultationsRef = ref(database, 'consultations');
+            // Listen for real-time updates for consultations
+            onValue(consultationsRef, (snapshot) => {
+                const data = snapshot.val();
+                consultations = [];
+                if (data) {
+                    // Convert the object of consultations into an array for easy filtering/display
+                    Object.keys(data).forEach(key => {
+                        consultations.push({ id: key, ...data[key] });
+                    });
                 }
-            ];
-            
-            displayConsultations(consultations);
-            updateStatistics();
-        }
-
-        function displayConsultations(consultationsList) {
-            const container = document.getElementById('consultationsList');
-            const noData = document.getElementById('noConsultations');
-            
-            if (consultationsList.length === 0) {
-                container.innerHTML = '';
-                noData.classList.remove('hidden');
-                return;
-            }
-            
-            noData.classList.add('hidden');
-            container.innerHTML = '';
-            
-            consultationsList.forEach(consultation => {
-                const card = createConsultationCard(consultation);
-                container.appendChild(card);
+                displayConsultations(consultations);
+                updateStatistics();
             });
         }
-
-        function createConsultationCard(consultation) {
-            const card = document.createElement('div');
-            card.className = `consultation-card bg-white rounded-lg border p-4 ${consultation.priority} ${consultation.status}`;
-            
-            const timeAgo = getTimeAgo(new Date(consultation.timestamp));
-            const specialtyNames = {
-                'family': 'طب أسرة',
-                'internal': 'باطنة',
-                'pediatric': 'أطفال',
-                'gynecology': 'نساء',
-                'dermatology': 'جلدية'
-            };
-            
-            card.innerHTML = `
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center">
-                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                            <i class="fas fa-user text-purple-600"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-gray-800">${consultation.patientName}</div>
-                            <div class="text-sm text-gray-600">${consultation.nationalId}</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 rounded text-xs ${consultation.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                            ${consultation.status === 'open' ? 'مفتوحة' : 'مغلقة'}
-                        </span>
-                        <span class="px-2 py-1 rounded text-xs ${consultation.priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
-                            ${consultation.priority === 'urgent' ? 'عاجل' : 'عادي'}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <div class="flex items-center space-x-2 mb-2">
-                        <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">${specialtyNames[consultation.specialty]}</span>
-                        <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded">${consultation.complaint}</span>
-                    </div>
-                    <p class="text-gray-700 text-sm">${consultation.symptoms}</p>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <div class="text-xs text-gray-500">${timeAgo}</div>
-                    <div class="flex space-x-2">
-                        <button onclick="viewConsultation(${consultation.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                            <i class="fas fa-eye ml-1"></i>عرض
-                        </button>
-                        ${consultation.status === 'open' ? `
-                            <button onclick="replyToConsultation(${consultation.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                <i class="fas fa-reply ml-1"></i>رد
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            
-            return card;
-        }
-
+        
+        // ... existing displayConsultations, createConsultationCard, updateStatistics, applyFilters, refreshConsultations, viewConsultation, closeConsultationModal functions ...
+        
         function updateStatistics() {
             const total = consultations.length;
             const open = consultations.filter(c => c.status === 'open').length;
@@ -722,7 +621,7 @@ const firebaseConfig = {
                     <div>
                         <h4 class="font-bold text-gray-800 mb-3">المعلومات الطبية</h4>
                         <div class="space-y-2">
-                            <div><span class="font-medium">التخصص:</span> ${specialtyNames[consultation.specialty]}</div>
+                            <div><span class="font-medium">التخصص:</span> ${specialtyNames[consultation.specialty] || 'غير محدد'}</div>
                             <div><span class="font-medium">الشكوى:</span> ${consultation.complaint}</div>
                             <div><span class="font-medium">الأعراض:</span> ${consultation.symptoms}</div>
                             <div><span class="font-medium">الأولوية:</span> ${consultation.priority === 'urgent' ? 'عاجل' : 'عادي'}</div>
@@ -733,30 +632,33 @@ const firebaseConfig = {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-gray-50 p-3 rounded-lg text-center">
                         <div class="text-sm text-gray-600">الوزن</div>
-                        <div class="font-bold">${consultation.weight} كجم</div>
+                        <div class="font-bold">${consultation.weight || '-'} كجم</div>
                     </div>
                     <div class="bg-gray-50 p-3 rounded-lg text-center">
                         <div class="text-sm text-gray-600">الطول</div>
-                        <div class="font-bold">${consultation.height} سم</div>
+                        <div class="font-bold">${consultation.height || '-'} سم</div>
                     </div>
                     <div class="bg-gray-50 p-3 rounded-lg text-center">
                         <div class="text-sm text-gray-600">ضغط الدم</div>
-                        <div class="font-bold">${consultation.bloodPressure}</div>
+                        <div class="font-bold">${consultation.bloodPressure || '-'}</div>
                     </div>
                     <div class="bg-gray-50 p-3 rounded-lg text-center">
                         <div class="text-sm text-gray-600">النبض</div>
-                        <div class="font-bold">${consultation.pulse} نبضة/دقيقة</div>
+                        <div class="font-bold">${consultation.pulse || '-'} نبضة/دقيقة</div>
                     </div>
                 </div>
                 
                 <div class="border-t pt-6">
                     <h4 class="font-bold text-gray-800 mb-3">الرد على الاستشارة</h4>
-                    <textarea id="consultationReply" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="اكتب ردك على الاستشارة..."></textarea>
+                    <textarea id="consultationReply" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="اكتب ردك على الاستشارة...">${consultation.reply || ''}</textarea>
+                    
+                    ${consultation.status === 'open' ? `
                     <div class="flex justify-end mt-4">
-                        <button onclick="sendReply(${consultation.id})" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
+                        <button onclick="sendReply('${consultation.id}')" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
                             <i class="fas fa-paper-plane ml-2"></i>إرسال الرد
                         </button>
                     </div>
+                    ` : `<div class="mt-4 text-green-600 font-bold">تم الرد على هذه الاستشارة بتاريخ: ${new Date(consultation.replyTimestamp).toLocaleDateString('ar-EG') || ''}</div>`}
                 </div>
             `;
             
@@ -770,6 +672,7 @@ const firebaseConfig = {
             modal.classList.remove('flex');
         };
 
+        // Updated sendReply to use Firebase update
         window.sendReply = function(consultationId) {
             const reply = document.getElementById('consultationReply').value;
             if (!reply.trim()) {
@@ -780,24 +683,29 @@ const firebaseConfig = {
             const replyData = {
                 consultationId: consultationId,
                 reply: reply,
-                doctorId: 'current-doctor-id', // This would be the actual doctor ID
+                doctorId: 'current-doctor-id', // Placeholder for actual doctor ID
                 timestamp: new Date().toISOString()
             };
             
-            const repliesRef = ref(database, 'consultationReplies');
-            push(repliesRef, replyData)
-                .then(() => {
-                    // Update consultation status
-                    const consultationRef = ref(database, `consultations/${consultationId}/status`);
-                    set(consultationRef, 'closed');
-                    
-                    alert('تم إرسال الرد بنجاح');
-                    closeConsultationModal();
-                    refreshConsultations();
-                })
-                .catch(error => {
-                    alert('خطأ في إرسال الرد: ' + error.message);
-                });
+            // 1. Update the consultation record with the reply and status
+            const consultationUpdateRef = ref(database, `consultations/${consultationId}`);
+            update(consultationUpdateRef, {
+                reply: reply,
+                status: 'closed',
+                doctorRepliedId: replyData.doctorId,
+                replyTimestamp: replyData.timestamp
+            })
+            .then(() => {
+                // 2. Push a record to 'consultationReplies' for history/reporting
+                const repliesRef = ref(database, 'consultationReplies');
+                push(repliesRef, replyData);
+                
+                alert('تم إرسال الرد بنجاح');
+                closeConsultationModal();
+            })
+            .catch(error => {
+                alert('خطأ في إرسال الرد: ' + error.message);
+            });
         };
 
         function getTimeAgo(date) {
